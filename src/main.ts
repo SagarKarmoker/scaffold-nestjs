@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-import { ConsoleLogger, Logger, VersioningType } from '@nestjs/common';
+import { ConsoleLogger, Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -14,6 +14,9 @@ async function bootstrap() {
       // json: true,
     }),
   });
+
+  // Global Validation Pipe
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
   
   // API Versioning
@@ -55,5 +58,8 @@ async function bootstrap() {
     logger.verbose(`Server is running on ${SERVER_URL}:${PORT}`);
     logger.verbose(`Swagger UI available at ${SERVER_URL}:${PORT}/v1/docs`);
   });
+
+  // Graceful shutdown
+  app.enableShutdownHooks();
 }
 bootstrap();

@@ -8,11 +8,19 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { HealthModule } from './health/health.module';
 import { UserModule } from './user/user.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { envValidationSchema } from './config/env.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       load: [configuration],
+      validationSchema: envValidationSchema,
+      validationOptions: {
+        allowUnknown: false,
+        abortEarly: true,
+      },
     }),
     ThrottlerModule.forRoot({
       throttlers: [
@@ -26,6 +34,9 @@ import { UserModule } from './user/user.module';
       ttl: 5000, // milliseconds
       isGlobal: true,
     }),
+    TypeOrmModule.forRoot({
+      autoLoadEntities: true,
+    }),
     HealthModule,
     UserModule
   ],
@@ -37,4 +48,6 @@ import { UserModule } from './user/user.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {
+  constructor(private readonly dataSource: DataSource) { }
+}
