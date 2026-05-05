@@ -53,3 +53,9 @@ Environment variables in `.env`:
 - Target: ES2023
 - Module: nodenext
 - Strict null checks enabled
+
+## Logging
+
+- Winston with file rotation (`logs/error.log`, `logs/combined.log`)
+- Console with colors and timestamp
+- Exception filters use Winston logger

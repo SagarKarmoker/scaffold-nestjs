@@ -1,24 +1,30 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-import { ConsoleLogger, Logger, ValidationPipe, VersioningType } from '@nestjs/common';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import compression from 'compression';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { AllExceptionsFilter } from './common/filters/all-exception.filter';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: new ConsoleLogger({
-      prefix: 'Scaffold Nest',
-      colors: true,
-      // json: true,
-    }),
+    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
+
+  const winstonLogger = app.get<Logger>(WINSTON_MODULE_PROVIDER);
+  const configService = app.get(ConfigService);
+
+  // Global Filters
+  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalFilters(new AllExceptionsFilter(winstonLogger));
 
   // Global Validation Pipe
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
-  
   // API Versioning
   app.setGlobalPrefix('api');
   app.enableVersioning({
@@ -26,21 +32,36 @@ async function bootstrap() {
     prefix: 'v',
     type: VersioningType.URI
   })
-  
-  // Security Middleware
-  app.use(helmet());
-  app.enableCors();
-  
+
+  // Security Middleware - Helmet with CSP
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  }));
+
+  // CORS - configurable via env
+  const allowedOrigins = configService.get<string>('CORS_ORIGINS')?.split(',') || [];
+  app.enableCors({
+    origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  });
+
   // compression middleware
   app.use(compression());
-  
-  // Configuration and Logging
-  let logger = new Logger("Entry Point");
-  const configService = app.get(ConfigService);
+
+  // Configuration
   const environment = configService.get<string>('ENVIRONMENT');
   const PORT = configService.get<number>('PORT');
   const SERVER_URL = configService.get<string>('SERVER_URL');
-
 
   // Swagger Setup
   const config = new DocumentBuilder()
@@ -51,12 +72,11 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('v1/docs', app, documentFactory);
 
-
   // Start the server
   await app.listen(PORT!, () => {
-    logger.verbose(`Environment: ${environment}`);
-    logger.verbose(`Server is running on ${SERVER_URL}:${PORT}`);
-    logger.verbose(`Swagger UI available at ${SERVER_URL}:${PORT}/v1/docs`);
+    winstonLogger.info(`Environment: ${environment}`);
+    winstonLogger.info(`Server is running on ${SERVER_URL}:${PORT}`);
+    winstonLogger.info(`Swagger UI available at ${SERVER_URL}:${PORT}/v1/docs`);
   });
 
   // Graceful shutdown
