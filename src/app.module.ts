@@ -7,6 +7,7 @@ import { CacheInterceptor, CacheModule } from '@nestjs/cache-manager';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { HealthModule } from './health/health.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -25,7 +26,8 @@ import { HealthModule } from './health/health.module';
       ttl: 5000, // milliseconds
       isGlobal: true,
     }),
-    HealthModule
+    HealthModule,
+    UserModule
   ],
   controllers: [AppController],
   providers: [AppService,
