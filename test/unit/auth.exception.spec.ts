@@ -7,14 +7,14 @@ import {
   UserNotFoundException,
   InvalidRefreshTokenException,
   AccountLockedException,
-} from './auth.exception';
+} from 'src/auth/exceptions/auth.exception';
 
 describe('Auth Exceptions', () => {
   describe('InvalidCredentialsException', () => {
     it('should create exception with correct message and status', () => {
       const exception = new InvalidCredentialsException();
       const response = exception.getResponse() as any;
-      
+
       expect(response.message).toBe('Invalid email or password');
       expect(exception.getStatus()).toBe(HttpStatus.UNAUTHORIZED);
     });
@@ -24,7 +24,7 @@ describe('Auth Exceptions', () => {
     it('should create exception with correct message and status', () => {
       const exception = new TokenExpiredException();
       const response = exception.getResponse() as any;
-      
+
       expect(response.message).toBe('Token has expired');
       expect(exception.getStatus()).toBe(HttpStatus.UNAUTHORIZED);
     });
@@ -34,7 +34,7 @@ describe('Auth Exceptions', () => {
     it('should create exception with correct message and status', () => {
       const exception = new SessionExpiredException();
       const response = exception.getResponse() as any;
-      
+
       expect(response.message).toBe('Session expired. Please login again.');
       expect(exception.getStatus()).toBe(HttpStatus.UNAUTHORIZED);
     });
@@ -44,8 +44,10 @@ describe('Auth Exceptions', () => {
     it('should create exception with email in message', () => {
       const exception = new UserAlreadyExistsException('test@example.com');
       const response = exception.getResponse() as any;
-      
-      expect(response.message).toBe('User with email test@example.com already exists');
+
+      expect(response.message).toBe(
+        'User with email test@example.com already exists',
+      );
       expect(exception.getStatus()).toBe(HttpStatus.BAD_REQUEST);
     });
   });
@@ -54,7 +56,7 @@ describe('Auth Exceptions', () => {
     it('should create exception with correct message and status', () => {
       const exception = new UserNotFoundException();
       const response = exception.getResponse() as any;
-      
+
       expect(response.message).toBe('User not found');
       expect(exception.getStatus()).toBe(HttpStatus.NOT_FOUND);
     });
@@ -64,7 +66,7 @@ describe('Auth Exceptions', () => {
     it('should create exception with correct message and status', () => {
       const exception = new InvalidRefreshTokenException();
       const response = exception.getResponse() as any;
-      
+
       expect(response.message).toBe('Invalid or expired refresh token');
       expect(exception.getStatus()).toBe(HttpStatus.UNAUTHORIZED);
     });
@@ -74,8 +76,10 @@ describe('Auth Exceptions', () => {
     it('should create exception with correct message and status', () => {
       const exception = new AccountLockedException();
       const response = exception.getResponse() as any;
-      
-      expect(response.message).toBe('Account is locked. Please try again later.');
+
+      expect(response.message).toBe(
+        'Account is locked. Please try again later.',
+      );
       expect(exception.getStatus()).toBe(HttpStatus.LOCKED);
     });
   });

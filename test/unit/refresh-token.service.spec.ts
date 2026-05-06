@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { RefreshTokenService } from './refresh-token.service';
-import { RefreshToken } from './entities/refresh-token.entity';
+import { RefreshTokenService } from 'src/auth/refresh-token.service';
+import { RefreshToken } from 'src/auth/entities/refresh-token.entity';
 import { User } from 'src/users/entities/user.entity';
+import { UserRoles } from 'src/utils/roles.enum';
 
 describe('RefreshTokenService', () => {
   let service: RefreshTokenService;
@@ -14,7 +15,7 @@ describe('RefreshTokenService', () => {
     email: 'test@example.com',
     name: 'Test User',
     password: 'hashedPassword',
-    role: 'user',
+    role: UserRoles.USER,
     sessionVersion: 0,
     createdAt: new Date(),
     updatedAt: new Date(),

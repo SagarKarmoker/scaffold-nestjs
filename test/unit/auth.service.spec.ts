@@ -1,13 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { AuthService } from './auth.service';
+import { AuthService } from 'src/auth/auth.service';
 import { UsersService } from 'src/users/users.service';
-import { RefreshTokenService } from './refresh-token.service';
+import { RefreshTokenService } from 'src/auth/refresh-token.service';
 import { User } from 'src/users/entities/user.entity';
-import { RegisterDto } from './dto/register.dto';
-import { UserAlreadyExistsException, UserNotFoundException, InvalidCredentialsException } from './exceptions/auth.exception';
+import { RegisterDto } from 'src/auth/dto/register.dto';
+import {
+  UserAlreadyExistsException,
+  UserNotFoundException,
+  InvalidCredentialsException,
+} from 'src/auth/exceptions/auth.exception';
 import { comparePasswords } from 'src/utils/password.utils';
+import { UserRoles } from 'src/utils/roles.enum';
 
 jest.mock('src/utils/password.utils', () => ({
   hashPassword: jest.fn().mockResolvedValue('hashedPassword'),
@@ -25,7 +30,7 @@ describe('AuthService', () => {
     email: 'test@example.com',
     name: 'Test User',
     password: 'hashedPassword',
-    role: 'user',
+    role: UserRoles.USER,
     sessionVersion: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -59,7 +64,9 @@ describe('AuthService', () => {
         {
           provide: RefreshTokenService,
           useValue: {
-            createRefreshToken: jest.fn().mockResolvedValue('mock-refresh-token'),
+            createRefreshToken: jest
+              .fn()
+              .mockResolvedValue('mock-refresh-token'),
             validateRefreshToken: jest.fn(),
             revokeRefreshToken: jest.fn(),
             revokeAllUserTokens: jest.fn(),
@@ -105,7 +112,9 @@ describe('AuthService', () => {
         password: 'password123',
       };
 
-      await expect(service.register(registerDto)).rejects.toThrow(UserAlreadyExistsException);
+      await expect(service.register(registerDto)).rejects.toThrow(
+        UserAlreadyExistsException,
+      );
     });
   });
 
@@ -113,15 +122,21 @@ describe('AuthService', () => {
     it('should return user when credentials are valid', async () => {
       (comparePasswords as jest.Mock).mockResolvedValueOnce(true);
       usersService.findOneByEmail.mockResolvedValue(mockUser);
-      
-      const result = await service.validateUser('test@example.com', 'password123');
+
+      const result = await service.validateUser(
+        'test@example.com',
+        'password123',
+      );
       expect(result).toEqual(mockUser);
     });
 
     it('should return null when user not found', async () => {
       usersService.findOneByEmail.mockResolvedValue(null);
 
-      const result = await service.validateUser('notfound@example.com', 'password123');
+      const result = await service.validateUser(
+        'notfound@example.com',
+        'password123',
+      );
       expect(result).toBeNull();
     });
 
@@ -129,7 +144,10 @@ describe('AuthService', () => {
       (comparePasswords as jest.Mock).mockResolvedValueOnce(false);
       usersService.findOneByEmail.mockResolvedValue(mockUser);
 
-      const result = await service.validateUser('test@example.com', 'wrongpassword');
+      const result = await service.validateUser(
+        'test@example.com',
+        'wrongpassword',
+      );
       expect(result).toBeNull();
     });
   });
@@ -157,11 +175,13 @@ describe('AuthService', () => {
         user: mockUser,
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as any);
+      });
       refreshTokenService.revokeRefreshToken.mockResolvedValue();
       usersService.findOneById.mockResolvedValue(mockUser);
       usersService.update.mockResolvedValue(mockUser);
-      refreshTokenService.createRefreshToken.mockResolvedValue('new-refresh-token');
+      refreshTokenService.createRefreshToken.mockResolvedValue(
+        'new-refresh-token',
+      );
 
       const result = await service.refreshToken('valid-refresh-token');
       expect(result.access_token).toBeDefined();
@@ -170,7 +190,9 @@ describe('AuthService', () => {
     it('should throw when refresh token is invalid', async () => {
       refreshTokenService.validateRefreshToken.mockResolvedValue(null);
 
-      await expect(service.refreshToken('invalid-token')).rejects.toThrow(InvalidCredentialsException);
+      await expect(service.refreshToken('invalid-token')).rejects.toThrow(
+        InvalidCredentialsException,
+      );
     });
   });
 
@@ -180,7 +202,9 @@ describe('AuthService', () => {
       refreshTokenService.revokeAllUserTokens.mockResolvedValue();
 
       await service.logout('1', 'refresh-token');
-      expect(refreshTokenService.revokeRefreshToken).toHaveBeenCalledWith('refresh-token');
+      expect(refreshTokenService.revokeRefreshToken).toHaveBeenCalledWith(
+        'refresh-token',
+      );
       expect(refreshTokenService.revokeAllUserTokens).toHaveBeenCalledWith('1');
     });
   });
@@ -197,7 +221,9 @@ describe('AuthService', () => {
     it('should throw when user not found', async () => {
       usersService.findOneById.mockResolvedValue(null);
 
-      await expect(service.validateSession('999', 0)).rejects.toThrow(UserNotFoundException);
+      await expect(service.validateSession('999', 0)).rejects.toThrow(
+        UserNotFoundException,
+      );
     });
 
     it('should throw when session version mismatch', async () => {

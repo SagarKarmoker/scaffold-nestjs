@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UsersService } from './users.service';
-import { User } from './entities/user.entity';
+import { UsersService } from 'src/users/users.service';
+import { User } from 'src/users/entities/user.entity';
+import { UserRoles } from 'src/utils/roles.enum';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -13,7 +14,7 @@ describe('UsersService', () => {
     email: 'test@example.com',
     name: 'Test User',
     password: 'hashedPassword',
-    role: 'user',
+    role: UserRoles.USER,
     sessionVersion: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -62,7 +63,9 @@ describe('UsersService', () => {
     });
 
     it('should throw error when id is empty', async () => {
-      await expect(service.findOneById('')).rejects.toThrow('User ID is required');
+      await expect(service.findOneById('')).rejects.toThrow(
+        'User ID is required',
+      );
     });
 
     it('should return null when user not found', async () => {
@@ -77,11 +80,15 @@ describe('UsersService', () => {
       repository.findOneBy.mockResolvedValue(mockUser);
       const result = await service.findOneByEmail('test@example.com');
       expect(result).toEqual(mockUser);
-      expect(repository.findOneBy).toHaveBeenCalledWith({ email: 'test@example.com' });
+      expect(repository.findOneBy).toHaveBeenCalledWith({
+        email: 'test@example.com',
+      });
     });
 
     it('should throw error when email is empty', async () => {
-      await expect(service.findOneByEmail('')).rejects.toThrow('User email is required');
+      await expect(service.findOneByEmail('')).rejects.toThrow(
+        'User email is required',
+      );
     });
   });
 
@@ -94,7 +101,9 @@ describe('UsersService', () => {
     });
 
     it('should throw error when user data is missing', async () => {
-      await expect(service.create(null as any)).rejects.toThrow('User data is required');
+      await expect(service.create(null as any)).rejects.toThrow(
+        'User data is required',
+      );
     });
   });
 
@@ -108,11 +117,15 @@ describe('UsersService', () => {
     });
 
     it('should throw error when id is missing', async () => {
-      await expect(service.update('', mockUser)).rejects.toThrow('User ID is required');
+      await expect(service.update('', mockUser)).rejects.toThrow(
+        'User ID is required',
+      );
     });
 
     it('should throw error when user data is missing', async () => {
-      await expect(service.update('1', null as any)).rejects.toThrow('User data is required');
+      await expect(service.update('1', null as any)).rejects.toThrow(
+        'User data is required',
+      );
     });
   });
 

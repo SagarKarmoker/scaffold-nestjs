@@ -1,14 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { RolesGuard, ROLES_KEY } from './roles.guard';
+import { RolesGuard, ROLES_KEY } from 'src/auth/guards/roles.guard';
 import { UserRoles } from 'src/utils/roles.enum';
 
 describe('RolesGuard', () => {
   let guard: RolesGuard;
   let reflector: jest.Mocked<Reflector>;
 
-  const createMockContext = (user: any, handler: any = {}, classVal: any = {}) => {
+  const createMockContext = (
+    user: any,
+    handler: any = {},
+    classVal: any = {},
+  ) => {
     return {
       switchToHttp: () => ({
         getRequest: () => ({ user }),
@@ -42,7 +46,7 @@ describe('RolesGuard', () => {
   it('should return true when no roles are required', () => {
     reflector.getAllAndOverride.mockReturnValue(undefined);
     const context = createMockContext({ role: 'user' });
-    
+
     const result = guard.canActivate(context);
     expect(result).toBe(true);
   });
@@ -50,7 +54,7 @@ describe('RolesGuard', () => {
   it('should return true when user has required role', () => {
     reflector.getAllAndOverride.mockReturnValue([UserRoles.ADMIN]);
     const context = createMockContext({ role: 'admin' });
-    
+
     const result = guard.canActivate(context);
     expect(result).toBe(true);
   });
@@ -58,7 +62,7 @@ describe('RolesGuard', () => {
   it('should throw ForbiddenException when user lacks required role', () => {
     reflector.getAllAndOverride.mockReturnValue([UserRoles.ADMIN]);
     const context = createMockContext({ role: 'user' });
-    
+
     expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
   });
 });

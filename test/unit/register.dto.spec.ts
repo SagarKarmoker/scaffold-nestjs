@@ -1,4 +1,4 @@
-import { RegisterDto } from './register.dto';
+import { RegisterDto } from 'src/auth/dto/register.dto';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 
@@ -6,11 +6,11 @@ describe('RegisterDto', () => {
   it('should validate required fields', async () => {
     const dto = plainToInstance(RegisterDto, {});
     const errors = await validate(dto);
-    
+
     expect(errors.length).toBeGreaterThan(0);
-    expect(errors.map(e => e.property)).toContain('email');
-    expect(errors.map(e => e.property)).toContain('password');
-    expect(errors.map(e => e.property)).toContain('name');
+    expect(errors.map((e) => e.property)).toContain('email');
+    expect(errors.map((e) => e.property)).toContain('password');
+    expect(errors.map((e) => e.property)).toContain('name');
   });
 
   it('should validate email format', async () => {
@@ -20,8 +20,8 @@ describe('RegisterDto', () => {
       name: 'Test User',
     });
     const errors = await validate(dto);
-    
-    expect(errors.some(e => e.property === 'email')).toBe(true);
+
+    expect(errors.some((e) => e.property === 'email')).toBe(true);
   });
 
   it('should pass with valid data', async () => {
@@ -31,7 +31,7 @@ describe('RegisterDto', () => {
       name: 'Test User',
     });
     const errors = await validate(dto);
-    
+
     expect(errors.length).toBe(0);
   });
 
@@ -42,7 +42,7 @@ describe('RegisterDto', () => {
       name: 'Test User',
     });
     const errors = await validate(dto);
-    
-    expect(errors.some(e => e.property === 'password')).toBe(true);
+
+    expect(errors.some((e) => e.property === 'password')).toBe(true);
   });
 });
