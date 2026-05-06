@@ -23,7 +23,16 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter(winstonLogger));
 
   // Global Validation Pipe
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
 
   // API Versioning
   app.setGlobalPrefix('api');
