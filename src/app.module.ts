@@ -50,10 +50,11 @@ import { AuthModule } from './auth/auth.module';
     }),
     HealthModule,
     UsersModule,
-    AuthModule
+    AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService,
+  providers: [
+    AppService,
     {
       provide: APP_INTERCEPTOR,
       useClass: CacheInterceptor,
@@ -61,5 +62,5 @@ import { AuthModule } from './auth/auth.module';
   ],
 })
 export class AppModule {
-  constructor(private readonly dataSource: DataSource) { }
+  constructor(private readonly dataSource: DataSource) {}
 }

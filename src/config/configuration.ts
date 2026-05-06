@@ -9,4 +9,10 @@ export default () => ({
   DB_PASSWORD: process.env.DB_PASSWORD || 'password',
   DB_NAME: process.env.DB_NAME || 'scaffold_nest',
   DB_PATH: process.env.DB_PATH || './app.db', // For SQLite
+  JWT: {
+    SECRET:
+      process.env.JWT_SECRET ||
+      'your-super-secret-jwt-key-change-in-production',
+    EXPIRATION: process.env.JWT_EXPIRATION || '1d',
+  },
 });

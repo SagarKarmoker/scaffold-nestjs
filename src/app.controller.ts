@@ -17,7 +17,7 @@ export class AppController {
   async getAll() {
     // For demonstration purposes, we will simulate a delay
     // to show that the cache is working as expected.
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise((resolve) => setTimeout(resolve, 3000));
     return [{ id: 1, name: 'Nest' }];
   }
 }

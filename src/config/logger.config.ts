@@ -7,10 +7,14 @@ export const loggerConfig: WinstonModuleOptions = {
       format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.colorize(),
-        winston.format.printf(({ timestamp, level, message, context, ...meta }) => {
-          const metaStr = Object.keys(meta).length ? JSON.stringify(meta, null, 2) : '';
-          return `${timestamp} [${context || 'App'}] ${level}: ${message} ${metaStr}`;
-        }),
+        winston.format.printf(
+          ({ timestamp, level, message, context, ...meta }) => {
+            const metaStr = Object.keys(meta).length
+              ? JSON.stringify(meta, null, 2)
+              : '';
+            return `${timestamp} [${context || 'App'}] ${level}: ${message} ${metaStr}`;
+          },
+        ),
       ),
     }),
     new winston.transports.File({

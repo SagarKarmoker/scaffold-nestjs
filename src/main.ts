@@ -30,24 +30,27 @@ async function bootstrap() {
   app.enableVersioning({
     defaultVersion: '1',
     prefix: 'v',
-    type: VersioningType.URI
-  })
+    type: VersioningType.URI,
+  });
 
   // Security Middleware - Helmet with CSP
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https:"],
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+        },
       },
-    },
-    crossOriginEmbedderPolicy: false,
-  }));
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
 
   // CORS - configurable via env
-  const allowedOrigins = configService.get<string>('CORS_ORIGINS')?.split(',') || [];
+  const allowedOrigins =
+    configService.get<string>('CORS_ORIGINS')?.split(',') || [];
   app.enableCors({
     origin: allowedOrigins.length > 0 ? allowedOrigins : true,
     credentials: true,
