@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { User } from 'src/users/entities/user.entity';
 
@@ -66,7 +66,7 @@ export class RefreshTokenService {
   }
 
   private parseDays(expiration: string): number {
-    const match = expiration.match(/(\d+)d/);
-    return match ? parseInt(match[1], 10) : 7;
+    const match = /^\d+d$/.exec(expiration);
+    return match ? Number.parseInt(match[1], 10) : 7;
   }
 }
