@@ -31,9 +31,12 @@ Create `.env` file (defaults shown):
 
 ```
 PORT=8080
-ENVIRONMENT=dev
+ENVIRONMENT=development
 SERVER_URL=http://localhost
+DB_PATH=./app.db
 ```
+
+Uses SQLite with `better-sqlite3` (no external DB required).
 
 ## Commands
 

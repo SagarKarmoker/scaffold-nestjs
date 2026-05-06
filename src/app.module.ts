@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration from './config/configuration';
 import { CacheInterceptor, CacheModule } from '@nestjs/cache-manager';
 import { APP_INTERCEPTOR } from '@nestjs/core';
@@ -36,8 +36,16 @@ import { LoggerModule } from './common/logger.module';
       ttl: 5000, // milliseconds
       isGlobal: true,
     }),
-    TypeOrmModule.forRoot({
-      autoLoadEntities: true,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'better-sqlite3',
+        database: configService.get<string>('DB_PATH') || './app.db',
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: configService.get<string>('ENVIRONMENT') !== 'prod',
+        logging: configService.get<string>('ENVIRONMENT') === 'dev',
+      }),
     }),
     HealthModule,
     UserModule
