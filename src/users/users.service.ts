@@ -4,8 +4,8 @@ import { Repository } from 'typeorm';
 import { User } from './entity/user.entity';
 
 @Injectable()
-export class UserService {
-    private readonly logger = new Logger(UserService.name);
+export class UsersService {
+    private readonly logger = new Logger(UsersService.name);
 
     constructor(
         @InjectRepository(User) private readonly userRepository: Repository<User>,
@@ -23,13 +23,28 @@ export class UserService {
     }
 
 
-    async findOne(id: string): Promise<User | null> {
+    async findOneById(id: string): Promise<User | null> {
         if (!id) {
             throw new Error('User ID is required');
         }
 
         try {
             return await this.userRepository.findOneBy({ id } as any);
+        } catch (error) {
+            if (error instanceof Error) {
+                this.logger.error('Error fetching user:', error.message);
+            }
+            throw error;
+        }
+    }
+
+    async findOneByEmail(email: string): Promise<User | null> {
+        if (!email) {
+            throw new Error('User email is required');
+        }
+
+        try {
+            return await this.userRepository.findOneBy({ email } as any);
         } catch (error) {
             if (error instanceof Error) {
                 this.logger.error('Error fetching user:', error.message);
@@ -64,7 +79,7 @@ export class UserService {
 
         try {
             await this.userRepository.update(id, user);
-            return await this.findOne(id);
+            return await this.findOneById(id);
         } catch (error) {
             if (error instanceof Error) {
                 this.logger.error('Error updating user:', error.message);

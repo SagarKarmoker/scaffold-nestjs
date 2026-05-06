@@ -7,11 +7,12 @@ import { CacheInterceptor, CacheModule } from '@nestjs/cache-manager';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { HealthModule } from './health/health.module';
-import { UserModule } from './user/user.module';
+import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { envValidationSchema } from './config/env.validation';
 import { LoggerModule } from './common/logger.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -48,7 +49,8 @@ import { LoggerModule } from './common/logger.module';
       }),
     }),
     HealthModule,
-    UserModule
+    UsersModule,
+    AuthModule
   ],
   controllers: [AppController],
   providers: [AppService,
