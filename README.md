@@ -1,15 +1,19 @@
 # Scaffold Nest
 
-A NestJS application scaffold with production-ready middleware and API versioning.
+A NestJS application scaffold with production-ready middleware, API versioning, and JWT authentication.
 
 ## Features
 
 - **API Versioning** - `/api/v1` prefix with URI-based versioning
 - **Swagger** - Auto-generated docs at `/v1/docs`
-- **Security** - Helmet, CORS enabled
+- **Authentication** - Passport.js + JWT with refresh tokens
+- **Security** - Helmet, CORS enabled, password hashing
+- **Single Session** - Login revokes previous tokens
+- **Role-based Authorization** - @Roles() decorator for route protection
 - **Performance** - Compression, global caching (5s TTL)
 - **Rate Limiting** - 10 requests/minute
-- **Logging** - Console logger with environment prefix
+- **Logging** - Winston with file rotation
+- **Error Handling** - Global exception filter with structured responses
 
 ## Quick Start
 
@@ -27,16 +31,73 @@ pnpm start:prod
 
 ## Configuration
 
-Create `.env` file (defaults shown):
+Create `.env` file:
 
 ```
 PORT=8080
 ENVIRONMENT=development
 SERVER_URL=http://localhost
 DB_PATH=./app.db
+JWT_SECRET=your-secret-key
+JWT_EXPIRATION=1d
+JWT_REFRESH_SECRET=your-refresh-secret
+JWT_REFRESH_EXPIRATION=7d
 ```
 
 Uses SQLite with `better-sqlite3` (no external DB required).
+
+## Authentication API
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/auth/register` | POST | Register new user | No |
+| `/auth/login` | POST | Login (returns tokens) | No |
+| `/auth/refresh` | POST | Refresh access token | No |
+| `/auth/logout` | POST | Revoke tokens | Yes |
+| `/auth/profile` | GET | Get current user | Yes |
+
+**Register:**
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John","email":"john@example.com","password":"password123"}'
+```
+
+**Login:**
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john@example.com","password":"password123"}'
+```
+
+**Response:**
+```json
+{
+  "access_token": "eyJ...",
+  "refresh_token": "abc...",
+  "user": {
+    "id": "uuid",
+    "email": "john@example.com",
+    "name": "John"
+  }
+}
+```
+
+**Protected Route:**
+```bash
+curl -X GET http://localhost:8080/api/v1/auth/profile \
+  -H "Authorization: Bearer <access_token>"
+```
+
+## Role-based Authorization
+
+```typescript
+// Admin only route
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRoles.ADMIN)
+@Get('admin')
+adminOnly() {}
+```
 
 ## Commands
 
@@ -61,8 +122,12 @@ Uses SQLite with `better-sqlite3` (no external DB required).
 - NestJS 11
 - pnpm
 - TypeScript (ES2023, strict null checks)
+- Passport.js + JWT
+- bcrypt for password hashing
+- TypeORM + better-sqlite3
 - Jest for testing
 - ESLint + Prettier
+- Winston logging
 
 ## SonarQube
 
