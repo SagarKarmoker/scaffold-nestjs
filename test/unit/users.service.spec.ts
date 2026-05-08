@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { UsersService } from 'src/users/users.service';
 import { User } from 'src/users/entities/user.entity';
 import { UserRoles } from 'src/utils/roles.enum';
@@ -14,6 +16,7 @@ describe('UsersService', () => {
     email: 'test@example.com',
     name: 'Test User',
     password: 'hashedPassword',
+    clerkId: undefined,
     role: UserRoles.USER,
     sessionVersion: 0,
     createdAt: new Date(),
@@ -29,9 +32,20 @@ describe('UsersService', () => {
           useValue: {
             find: jest.fn(),
             findOneBy: jest.fn(),
+            create: jest.fn(),
             save: jest.fn(),
             update: jest.fn(),
             delete: jest.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string) => {
+              if (key === 'CLERK_PUBLISHABLE_KEY') return 'pk_test_xxx';
+              if (key === 'CLERK_SECRET_KEY') return 'sk_test_xxx';
+              return null;
+            }),
           },
         },
       ],

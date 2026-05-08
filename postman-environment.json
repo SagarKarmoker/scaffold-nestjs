@@ -9,18 +9,13 @@
       "enabled": true
     },
     {
-      "key": "accessToken",
+      "key": "clerkToken",
       "value": "",
       "type": "secret",
-      "enabled": true
-    },
-    {
-      "key": "refreshToken",
-      "value": "",
-      "type": "secret",
-      "enabled": true
+      "enabled": true,
+      "description": "Clerk JWT token (get from Clerk Dashboard)"
     }
   ],
   "_postman_variable_scope": "environment",
-  "_exported_at": "2026-05-06T06:30:00.000Z"
+  "_exported_at": "2026-05-08T00:00:00.000Z"
 }

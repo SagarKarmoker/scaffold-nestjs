@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Scaffold Nest API",
-    "description": "NestJS API with JWT authentication",
+    "description": "NestJS API with Clerk authentication",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -11,12 +11,7 @@
       "type": "string"
     },
     {
-      "key": "accessToken",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "refreshToken",
+      "key": "clerkToken",
       "value": "",
       "type": "string"
     }
@@ -26,146 +21,18 @@
       "name": "Auth",
       "item": [
         {
-          "name": "Register",
-          "request": {
-            "method": "POST",
-            "url": {
-              "raw": "{{baseUrl}}/auth/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "register"]
-            },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.collectionVariables.set('accessToken', jsonData.access_token);",
-                  "    pm.collectionVariables.set('refreshToken', jsonData.refresh_token);",
-                  "}",
-                  "",
-                  "pm.test('Status code is 201', function() {",
-                  "    pm.expect(pm.response.code).to.eq(201);",
-                  "});",
-                  "",
-                  "pm.test('Response has access_token', function() {",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('access_token');",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Login",
-          "request": {
-            "method": "POST",
-            "url": {
-              "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
-            },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.collectionVariables.set('accessToken', jsonData.access_token);",
-                  "    pm.collectionVariables.set('refreshToken', jsonData.refresh_token);",
-                  "}",
-                  "",
-                  "pm.test('Status code is 200', function() {",
-                  "    pm.expect(pm.response.code).to.eq(200);",
-                  "});",
-                  "",
-                  "pm.test('Response has tokens', function() {",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('access_token');",
-                  "    pm.expect(jsonData).to.have.property('refresh_token');",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Refresh Token",
-          "request": {
-            "method": "POST",
-            "url": {
-              "raw": "{{baseUrl}}/auth/refresh",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "refresh"]
-            },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.collectionVariables.set('accessToken', jsonData.access_token);",
-                  "    pm.collectionVariables.set('refreshToken', jsonData.refresh_token);",
-                  "}",
-                  "",
-                  "pm.test('Status code is 200', function() {",
-                  "    pm.expect(pm.response.code).to.eq(200);",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Profile",
+          "name": "Get My Profile",
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/auth/profile",
+              "raw": "{{baseUrl}}/auth/me",
               "host": ["{{baseUrl}}"],
-              "path": ["auth", "profile"]
+              "path": ["auth", "me"]
             },
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
+                "value": "Bearer {{clerkToken}}"
               }
             ]
           },
@@ -183,69 +50,6 @@
                   "    pm.expect(jsonData).to.have.property('id');",
                   "    pm.expect(jsonData).to.have.property('email');",
                   "    pm.expect(jsonData).to.have.property('name');",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Logout",
-          "request": {
-            "method": "POST",
-            "url": {
-              "raw": "{{baseUrl}}/auth/logout",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "logout"]
-            },
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ]
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "    pm.collectionVariables.set('accessToken', '');",
-                  "    pm.collectionVariables.set('refreshToken', '');",
-                  "}",
-                  "",
-                  "pm.test('Status code is 200', function() {",
-                  "    pm.expect(pm.response.code).to.eq(200);",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Admin Only",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/auth/admin-only",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "admin-only"]
-            },
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ]
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 200 for admin', function() {",
-                  "    pm.expect(pm.response.code).to.oneOf([200, 403]);",
                   "});"
                 ]
               }
@@ -269,7 +73,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
+                "value": "Bearer {{clerkToken}}"
               }
             ]
           }
@@ -286,7 +90,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
+                "value": "Bearer {{clerkToken}}"
               }
             ]
           }
@@ -307,12 +111,12 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
+                "value": "Bearer {{clerkToken}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane@example.com\",\n  \"password\": \"password123\"\n}"
+              "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane@example.com\"\n}"
             }
           }
         },
@@ -332,7 +136,7 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
+                "value": "Bearer {{clerkToken}}"
               }
             ],
             "body": {
@@ -353,7 +157,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
+                "value": "Bearer {{clerkToken}}"
               }
             ]
           }

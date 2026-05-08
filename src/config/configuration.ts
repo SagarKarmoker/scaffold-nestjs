@@ -15,4 +15,8 @@ export default () => ({
       'your-super-secret-jwt-key-change-in-production',
     EXPIRATION: process.env.JWT_EXPIRATION || '1d',
   },
+  CLERK : {
+    PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY || '',
+    SECRET_KEY: process.env.CLERK_SECRET_KEY || '',
+  }
 });

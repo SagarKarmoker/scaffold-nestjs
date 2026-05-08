@@ -9,6 +9,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AllExceptionsFilter } from './common/filters/all-exception.filter';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
+import { clerkMiddleware } from '@clerk/express'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -69,6 +70,9 @@ async function bootstrap() {
 
   // compression middleware
   app.use(compression());
+
+  // Clerk Middleware
+  app.use(clerkMiddleware());
 
   // Configuration
   const environment = configService.get<string>('ENVIRONMENT');

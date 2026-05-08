@@ -1,15 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
+import { createClerkClient, type ClerkClient } from '@clerk/express';
 import { User } from './entities/user.entity';
+import { UserRoles } from 'src/utils/roles.enum';
 
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
+  private readonly clerkClient: ClerkClient;
 
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.clerkClient = createClerkClient({
+      publishableKey: this.configService.get('CLERK_PUBLISHABLE_KEY'),
+      secretKey: this.configService.get('CLERK_SECRET_KEY'),
+    });
+  }
 
   async findAll(): Promise<User[]> {
     try {
@@ -100,5 +110,44 @@ export class UsersService {
       }
       throw error;
     }
+  }
+
+  async findOneByClerkId(clerkId: string): Promise<User | null> {
+    if (!clerkId) {
+      return null;
+    }
+
+    try {
+      return await this.userRepository.findOneBy({ clerkId });
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.error('Error fetching user by Clerk ID:', error.message);
+      }
+      return null;
+    }
+  }
+
+  async createFromClerk(clerkUserId: string): Promise<User> {
+    const clerkUser = (await this.clerkClient.users.getUser(clerkUserId)) as {
+      firstName: string | null;
+      lastName: string | null;
+      username: string | null;
+      emailAddresses: Array<{ emailAddress: string }>;
+    };
+
+    const email = clerkUser.emailAddresses[0]?.emailAddress || '';
+    const name =
+      clerkUser.firstName && clerkUser.lastName
+        ? `${clerkUser.firstName} ${clerkUser.lastName}`
+        : clerkUser.username || email || 'Unknown';
+
+    const user = this.userRepository.create({
+      name,
+      email,
+      clerkId: clerkUserId,
+      role: UserRoles.USER,
+    });
+
+    return this.userRepository.save(user);
   }
 }

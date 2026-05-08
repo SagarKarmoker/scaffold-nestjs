@@ -16,4 +16,6 @@ export const envValidationSchema = Joi.object({
     'your-super-secret-refresh-token-key-change-in-production',
   ),
   JWT_REFRESH_EXPIRATION: Joi.string().default('7d'),
+  CLERK_PUBLISHABLE_KEY: Joi.string().default(''),
+  CLERK_SECRET_KEY: Joi.string().default(''),
 });

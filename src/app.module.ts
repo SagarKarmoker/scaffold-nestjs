@@ -13,6 +13,7 @@ import { DataSource } from 'typeorm';
 import { envValidationSchema } from './config/env.validation';
 import { LoggerModule } from './common/logger.module';
 import { AuthModule } from './auth/auth.module';
+import { ClerkClientProvider } from './providers/clerk-client.provider';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { AuthModule } from './auth/auth.module';
       provide: APP_INTERCEPTOR,
       useClass: CacheInterceptor,
     },
+    ClerkClientProvider
   ],
 })
 export class AppModule {
