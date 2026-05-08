@@ -13,6 +13,9 @@ A production-ready NestJS application scaffold with JWT authentication, API vers
 - **Error Handling** - Global filter distinguishes 4xx (warn) vs 5xx (error)
 - **Health Checks** - `/health`, `/ready`, `/live` via @nestjs/terminus
 - **Graceful Shutdown** - Handles SIGTERM/SIGINT
+- **Email Queue** - BullMQ for async email processing with retry (3 attempts, exponential backoff)
+- **Modern Email Templates** - Responsive HTML templates for welcome & password reset
+- **Testing** - 108 tests (90 unit + 18 e2e) with supertest
 
 ## Quick Start
 
@@ -32,6 +35,13 @@ SERVER_URL=http://localhost
 DB_PATH=./app.db
 JWT_SECRET=your-secret-key-min-32-chars
 JWT_REFRESH_SECRET=your-refresh-secret-min-32-chars
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+SMTP_USER=you@example.com
+SMTP_PASS=your-password
+APP_NAME=MyApp
+DASHBOARD_URL=http://localhost:3000/dashboard
+RESET_URL=http://localhost:3000/reset-password
 ```
 
 ## Commands
@@ -77,7 +87,8 @@ adminOnly() {}
 - pnpm + TypeScript (ES2023, strict null checks)
 - Passport.js + JWT + bcrypt
 - TypeORM + better-sqlite3
-- Winston + Jest
+- BullMQ + nodemailer
+- Winston + Jest + Supertest
 
 ## Refs
 
