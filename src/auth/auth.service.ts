@@ -18,4 +18,19 @@ export class AuthService {
 
     return user;
   }
+
+  async syncUserFromClerk(clerkUserId: string): Promise<User | null> {
+    try {
+      const existing = await this.usersService.findOneByClerkId(clerkUserId);
+      if (existing) {
+        return existing;
+      }
+
+      this.logger.log(`Auto-syncing new user from Clerk: ${clerkUserId}`);
+      return await this.usersService.createFromClerk(clerkUserId);
+    } catch (error) {
+      this.logger.error(`Failed to sync user: ${clerkUserId}`, error);
+      return null;
+    }
+  }
 }
