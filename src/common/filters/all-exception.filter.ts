@@ -56,17 +56,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
     };
 
     if (is4xx) {
-      this.logger.warn(`${request.method} ${request.url} - ${status}: ${message}`, {
-        requestId,
-        status,
-        path: request.url,
-      });
+      this.logger.warn(
+        `${request.method} ${request.url} - ${status}: ${message}`,
+        {
+          requestId,
+          status,
+          path: request.url,
+        },
+      );
     } else if (is5xx) {
       this.logger.error(`${request.method} ${request.url}`, {
         requestId,
         status,
         stack: exception instanceof Error ? exception.stack : undefined,
-        message: exception instanceof Error ? exception.message : 'Unknown error',
+        message:
+          exception instanceof Error ? exception.message : 'Unknown error',
       });
     }
 

@@ -13,6 +13,8 @@ import { DataSource } from 'typeorm';
 import { envValidationSchema } from './config/env.validation';
 import { LoggerModule } from './common/logger.module';
 import { AuthModule } from './auth/auth.module';
+import { MailModule } from './mail/mail.module';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -48,9 +50,20 @@ import { AuthModule } from './auth/auth.module';
         logging: configService.get<string>('ENVIRONMENT') === 'dev',
       }),
     }),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('REDIS_HOST') || 'localhost',
+          port: configService.get<number>('REDIS_PORT') || 6379,
+        },
+      }),
+    }),
     HealthModule,
     UsersModule,
     AuthModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [

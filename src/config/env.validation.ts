@@ -16,4 +16,10 @@ export const envValidationSchema = Joi.object({
     'your-super-secret-refresh-token-key-change-in-production',
   ),
   JWT_REFRESH_EXPIRATION: Joi.string().default('7d'),
+  MAIL_HOST: Joi.string().default('smtp.example.com'),
+  MAIL_PORT: Joi.number().port().default(587),
+  SMTP_USER: Joi.string().default(''),
+  SMTP_PASSWORD: Joi.string().default(''),
+  REDIS_HOST: Joi.string().default('localhost'),
+  REDIS_PORT: Joi.number().port().default(6379),
 });

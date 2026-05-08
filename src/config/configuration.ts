@@ -15,4 +15,14 @@ export default () => ({
       'your-super-secret-jwt-key-change-in-production',
     EXPIRATION: process.env.JWT_EXPIRATION || '1d',
   },
+  MAIL: {
+    HOST: process.env.MAIL_HOST || 'smtp.example.com',
+    PORT: Number.parseInt(process.env.MAIL_PORT || '587', 10),
+    USER: process.env.SMTP_USER || '',
+    PASSWORD: process.env.SMTP_PASSWORD || '',
+  },
+  REDIS: {
+    HOST: process.env.REDIS_HOST || 'localhost',
+    PORT: Number.parseInt(process.env.REDIS_PORT || '6379', 10),
+  },
 });
