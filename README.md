@@ -1,32 +1,191 @@
-# Scaffold Nest
+# Scaffold NestJS
 
-A production-ready NestJS application scaffold with JWT authentication, API versioning, and best practices.
+A **production-ready, scalable NestJS monolith** with Redis caching, BullMQ job queues, PostgreSQL, clustering, Kubernetes support, and full observability.
 
-## Features
+## Architecture Highlights
 
-- **API Versioning** - `/api/v1` prefix with URI-based versioning
-- **Swagger** - Auto-generated docs at `/v1/docs`
-- **Authentication** - Passport.js + JWT with refresh tokens (single session)
-- **Security** - Helmet, CORS, rate limiting (10 req/min), bcrypt
-- **Validation** - class-validator with whitelist + forbidNonWhitelisted
-- **Logging** - Winston with file rotation + request correlation (`x-request-id`)
-- **Error Handling** - Global filter distinguishes 4xx (warn) vs 5xx (error)
-- **Health Checks** - `/health`, `/ready`, `/live` via @nestjs/terminus
-- **Graceful Shutdown** - Handles SIGTERM/SIGINT
-- **Email Queue** - BullMQ for async email processing with retry (3 attempts, exponential backoff)
-- **Modern Email Templates** - Responsive HTML templates for welcome & password reset
-- **Testing** - 108 tests (90 unit + 18 e2e) with supertest
+| Feature | Implementation |
+|---|---|
+| **Clustering** | Node.js `cluster` module (or PM2 in cluster mode) |
+| **Rate Limiting** | `@nestjs/throttler` – 100 req/min/IP (proxy-aware) |
+| **Caching** | `@nestjs/cache-manager` + Redis (`@keyv/redis`) |
+| **Job Queues** | `@nestjs/bullmq` + Redis, BullBoard UI at `/bull-board` |
+| **Database** | TypeORM + PostgreSQL with connection pooling |
+| **Security** | Helmet, CORS, ValidationPipe (`whitelist`, `forbidNonWhitelisted`) |
+| **Logging** | Winston + structured JSON + request correlation |
+| **Health** | `/health` (DB + Redis), `/health/ready` |
+| **API Docs** | Swagger at `/v1/docs` |
+| **Observability** | Request/response logging interceptor, BullBoard |
 
 ## Quick Start
 
+### 1. Install dependencies
+
 ```bash
 pnpm install
+# or
+npm install
+```
+
+### 2. Configure environment
+
+```bash
+cp .env.example .env
+# Edit .env – fill in DATABASE_URL, Redis settings, JWT secrets
+```
+
+### 3. Run locally (Docker Compose)
+
+```bash
+# Starts app + PostgreSQL + Redis
+docker-compose up --build
+
+# Or run services only and app locally
+docker-compose up postgres redis -d
 pnpm dev
 ```
 
-## Configuration
+Endpoints:
+- **API**: `http://localhost:8080/api/v1`
+- **Swagger UI**: `http://localhost:8080/v1/docs`
+- **BullBoard**: `http://localhost:8080/bull-board`
+- **Health**: `http://localhost:8080/health`
 
-Create `.env`:
+## API Overview
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/v1/auth/register` | Register → returns access + refresh tokens |
+| `POST` | `/api/v1/auth/login` | Login |
+| `GET` | `/api/v1/auth/profile` | Current user (Bearer required) |
+| `POST` | `/api/v1/orders` | Create order (queues background job, returns 201) |
+| `GET` | `/api/v1/orders` | List orders (paginated) |
+| `GET` | `/api/v1/orders/:id` | Get order (Redis cached 60 s) |
+| `PUT` | `/api/v1/orders/:id` | Update order (invalidates cache) |
+| `DELETE` | `/api/v1/orders/:id` | Delete order |
+| `POST` | `/api/v1/notify` | Queue email notification (returns 202) |
+| `GET` | `/api/v1/notify/metrics` | Email queue metrics |
+| `GET` | `/health` | Liveness probe (DB + Redis) |
+| `GET` | `/health/ready` | Readiness probe |
+
+## Scaling
+
+### Option 1 – Node.js Cluster (in-process)
+
+```bash
+# Build first
+pnpm build
+
+# Enable in-process clustering
+CLUSTERING=true node dist/main.js
+```
+
+### Option 2 – PM2 Cluster Mode (recommended for VMs)
+
+```bash
+# Install PM2
+pnpm add -g pm2
+
+# Build and start with cluster mode
+pnpm build
+pm2 start ecosystem.config.js
+
+# Monitor
+pm2 monit
+pm2 logs scaffold-nest
+```
+
+### Option 3 – Kubernetes
+
+```bash
+# Build and push image
+docker build -t scaffold-nest:latest .
+docker tag scaffold-nest:latest <registry>/scaffold-nest:latest
+docker push <registry>/scaffold-nest:latest
+
+# Apply manifests
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/hpa.yaml
+
+# Check status
+kubectl get pods -l app=scaffold-nest
+kubectl get hpa scaffold-nest-hpa
+```
+
+The HPA scales between 2–10 replicas when CPU > 70% or memory > 80%.
+
+## Load Testing with k6
+
+Save as `load-test.js` and run with `k6 run load-test.js`:
+
+```javascript
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+
+export const options = {
+  stages: [
+    { duration: '30s', target: 50 },   // ramp up
+    { duration: '2m',  target: 200 },  // sustained load
+    { duration: '30s', target: 0 },    // ramp down
+  ],
+  thresholds: {
+    http_req_duration: ['p(95)<500'],
+    http_req_failed: ['rate<0.01'],
+  },
+};
+
+const BASE = 'http://localhost:8080/api/v1';
+
+export default function () {
+  // Health check
+  const health = http.get(`http://localhost:8080/health`);
+  check(health, { 'health ok': (r) => r.status === 200 });
+
+  // List orders
+  const orders = http.get(`${BASE}/orders`, {
+    headers: { Authorization: `Bearer ${__ENV.JWT_TOKEN}` },
+  });
+  check(orders, { 'orders 200': (r) => r.status === 200 });
+
+  sleep(0.5);
+}
+```
+
+```bash
+# Install k6: https://k6.io/docs/getting-started/installation/
+JWT_TOKEN=<your-token> k6 run load-test.js
+```
+
+## Development Commands
+
+```bash
+pnpm dev          # Hot reload (ts-node watch)
+pnpm build        # Compile TypeScript → dist/
+pnpm start:prod   # Run compiled output
+pnpm test         # Unit tests
+pnpm test:e2e     # End-to-end tests
+pnpm lint         # ESLint --fix
+pnpm format       # Prettier write
+```
+
+## Configuration Reference
+
+See `.env.example` for all variables. Key ones:
+
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_URL` | `postgresql://...` | Primary DB connection string |
+| `DATABASE_REPLICA_URL` | _(empty)_ | Optional read-replica URL |
+| `REDIS_HOST` | `localhost` | Redis hostname |
+| `REDIS_PORT` | `6379` | Redis port |
+| `REDIS_PASSWORD` | _(empty)_ | Redis auth password |
+| `THROTTLE_TTL` | `60000` | Rate-limit window (ms) |
+| `THROTTLE_LIMIT` | `100` | Max requests per window per IP |
+| `CLUSTERING` | `false` | Enable Node.js in-process cluster |
+| `JWT_SECRET` | — | Min 32 chars in production |
+| `CORS_ORIGIN` | _(empty = allow all)_ | Comma-separated allowed origins |
 
 ```env
 PORT=8080

@@ -1,4 +1,4 @@
-import { UserRoles } from 'src/utils/roles.enum';
+import { UserRoles } from 'src/common/utils/roles.enum';
 
 describe('UserRoles', () => {
   it('should have ADMIN role', () => {

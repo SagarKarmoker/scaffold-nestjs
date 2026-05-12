@@ -7,7 +7,7 @@ import {
   UserNotFoundException,
   InvalidRefreshTokenException,
   AccountLockedException,
-} from 'src/auth/exceptions/auth.exception';
+} from 'src/modules/auth/exceptions/auth.exception';
 
 describe('Auth Exceptions', () => {
   describe('InvalidCredentialsException', () => {

@@ -1,13 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HealthController } from 'src/health/health.controller';
-import { HealthCheckService, HttpHealthIndicator } from '@nestjs/terminus';
-import { ConfigService } from '@nestjs/config';
+import { HealthController } from 'src/modules/health/health.controller';
+import { HealthCheckService, TypeOrmHealthIndicator } from '@nestjs/terminus';
+import { RedisHealthIndicator } from 'src/modules/health/redis.health.indicator';
 
 describe('HealthController', () => {
   let controller: HealthController;
   let healthCheckService: jest.Mocked<HealthCheckService>;
-  let httpHealthIndicator: jest.Mocked<HttpHealthIndicator>;
-  let configService: jest.Mocked<ConfigService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -20,15 +18,15 @@ describe('HealthController', () => {
           },
         },
         {
-          provide: HttpHealthIndicator,
+          provide: TypeOrmHealthIndicator,
           useValue: {
-            pingCheck: jest.fn().mockReturnValue({}),
+            pingCheck: jest.fn().mockResolvedValue({ database: { status: 'up' } }),
           },
         },
         {
-          provide: ConfigService,
+          provide: RedisHealthIndicator,
           useValue: {
-            get: jest.fn().mockReturnValue('http://localhost'),
+            isHealthy: jest.fn().mockResolvedValue({ redis: { status: 'up' } }),
           },
         },
       ],
@@ -36,8 +34,6 @@ describe('HealthController', () => {
 
     controller = module.get<HealthController>(HealthController);
     healthCheckService = module.get(HealthCheckService);
-    httpHealthIndicator = module.get(HttpHealthIndicator);
-    configService = module.get(ConfigService);
   });
 
   it('should be defined', () => {
@@ -50,11 +46,12 @@ describe('HealthController', () => {
       expect(result).toEqual({ status: 'ok' });
       expect(healthCheckService.check).toHaveBeenCalled();
     });
+  });
 
-    it('should use SERVER_URL from config', async () => {
-      configService.get.mockReturnValue('http://example.com');
-      await controller.check();
-      expect(configService.get).toHaveBeenCalledWith('SERVER_URL');
+  describe('ready', () => {
+    it('should return ok status', () => {
+      const result = controller.ready();
+      expect(result).toMatchObject({ status: 'ok' });
     });
   });
 });
