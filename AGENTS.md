@@ -3,64 +3,56 @@
 ## Commands
 
 ```bash
-# Dev -> Build -> Prod
 pnpm dev          # Hot reload
 pnpm build        # Compile to dist/
-pnpm start:prod   # Run production
+pnpm start:prod   # Run compiled output
 
-# Test
-pnpm test         # Unit tests
-pnpm test:e2e     # E2E tests (uses test/jest-e2e.json)
+pnpm test         # Unit tests (Jest, *.spec.ts)
+pnpm test:e2e     # E2E tests (test/jest-e2e.json, *.e2e-spec.ts)
 
-# Lint & Format
-pnpm lint    # ESLint --fix
-pnpm format  # Prettier write
+pnpm lint         # ESLint --fix
+pnpm format       # Prettier write
 ```
 
-## Verified Facts
+## Startup (external deps required)
 
-- **Entry**: `src/main.ts` → `src/app.module.ts`
-- **API**: `/api/v1` prefix, versioning enabled
-- **Swagger**: `/v1/docs`
-- **Health**: `/health`, `/ready` (via @nestjs/terminus)
+Requires **PostgreSQL** + **Redis** running. Easiest way:
+
+```bash
+docker-compose up postgres redis -d    # start infra only
+pnpm dev                                # hot-reload locally
+
+# Or everything together:
+docker-compose up --build
+```
 
 ## Non-Obvious Patterns
 
-- **Validation**: ValidationPipe has `forbidNonWhitelisted: true` - extra props on requests fail with 400
-- **Logging**: Winston with file rotation (`logs/error.log`, `logs/combined.log`) + correlation via `x-request-id` header
-- **Errors**: `AllExceptionsFilter` distinguishes 4xx (warn) vs 5xx (error log), hides internal errors from clients
-- **Shutdown**: `app.enableShutdownHooks()` handles SIGTERM gracefully
-- **Testing**: Module alias `^src/(.*)$` maps to `<rootDir>/src/$1` in Jest
+- **Real DB is PostgreSQL.** `core/database/` has an unused sqlite provider — ignore it. The active config is `app.module.ts:78` with `type: 'postgres'` + `DATABASE_URL`, connection pool `max: 20`.
+- **BullMQ requires Redis.** App will fail to start without Redis, even if you never use queues.
+- **Rate limiter is proxy-aware** (`ThrottlerBehindProxyGuard`). Reads `X-Forwarded-For` for real client IP. Custom 429 response.
+- **CacheInvalidationInterceptor** is a global interceptor — evicts specified Redis cache keys on any POST/PUT/PATCH/DELETE.
+- **Orders module** is a reference pattern for async processing (BullMQ queue + Redis cache). Not a real business feature.
+- **Clustering**: in-process via `CLUSTERING=true` env, or external via PM2 (`ecosystem.config.js`). Not both.
+- **No CI workflow** defined. `.github/` only has SonarQube MCP instructions.
 
-## Required Env (.env)
+## Required Env (minimal .env)
 
 ```
 PORT=8080
-JWT_SECRET=...        # Min 32 chars in prod
+DATABASE_URL=postgresql://postgres:password@localhost:5432/scaffold_nest
+REDIS_HOST=localhost
+REDIS_PORT=6379
+JWT_SECRET=...              # Min 32 chars in prod
 JWT_REFRESH_SECRET=...
-DB_PATH=./app.db
+CORS_ORIGIN=http://localhost:3000
 ```
 
-## Auth Flow
+## Endpoints
 
-1. `POST /api/v1/auth/register` → returns access_token + refresh_token
-2. `POST /api/v1/auth/login` → same response
-3. `GET /api/v1/auth/profile` → Bearer token required
-
-Role protection:
-```typescript
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRoles.ADMIN)
-@Get('admin')
-adminOnly() {}
-```
-
-## Database
-
-- TypeORM + better-sqlite3 (no external DB)
-- Entities in `src/**/entities/*.entity.ts`
-- Use `BaseEntity` for id, createdAt, updatedAt
-
-## Refs
-
-- Full guide: `PRODUCTION_GUIDE.md`
+| Path | Notes |
+|---|---|
+| `/api/v1/*` | All API routes |
+| `/v1/docs` | Swagger UI |
+| `/health`, `/health/ready` | Liveness / readiness probes |
+| `/bull-board` | BullMQ queue monitoring UI |
