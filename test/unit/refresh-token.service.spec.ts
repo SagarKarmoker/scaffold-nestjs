@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { RefreshTokenService } from 'src/auth/refresh-token.service';
-import { RefreshToken } from 'src/auth/entities/refresh-token.entity';
-import { User } from 'src/users/entities/user.entity';
-import { UserRoles } from 'src/utils/roles.enum';
+import { RefreshTokenService } from 'src/modules/auth/refresh-token.service';
+import { RefreshToken } from 'src/modules/auth/entities/refresh-token.entity';
+import { User } from 'src/modules/users/entities/user.entity';
+import { UserRoles } from 'src/common/utils/roles.enum';
 
 describe('RefreshTokenService', () => {
   let service: RefreshTokenService;

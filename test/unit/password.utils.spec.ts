@@ -1,4 +1,4 @@
-import { hashPassword, comparePasswords } from 'src/utils/password.utils';
+import { hashPassword, comparePasswords } from 'src/common/utils/password.utils';
 
 describe('Password Utils', () => {
   describe('hashPassword', () => {

@@ -3,22 +3,30 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration from './config/configuration';
-import { CacheInterceptor, CacheModule } from '@nestjs/cache-manager';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { CacheModule } from '@nestjs/cache-manager';
+import { createKeyv } from '@keyv/redis';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { HealthModule } from './health/health.module';
-import { UsersModule } from './users/users.module';
+import { HealthModule } from './modules/health/health.module';
+import { UsersModule } from './modules/users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
 import { envValidationSchema } from './config/env.validation';
 import { LoggerModule } from './common/logger.module';
-import { AuthModule } from './auth/auth.module';
-import { MailModule } from './mail/mail.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { MailModule } from './modules/mail/mail.module';
 import { BullModule } from '@nestjs/bullmq';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { ExpressAdapter } from '@bull-board/express';
+import { OrdersModule } from './modules/orders/orders.module';
+import { QueuesModule } from './modules/queues/queues.module';
+import { ThrottlerBehindProxyGuard } from './core/guards/throttler-behind-proxy.guard';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { CacheInvalidationInterceptor } from './core/interceptors/cache-invalidation.interceptor';
 
 @Module({
   imports: [
     LoggerModule,
+
     ConfigModule.forRoot({
       load: [configuration],
       validationSchema: envValidationSchema,
@@ -26,54 +34,116 @@ import { BullModule } from '@nestjs/bullmq';
         allowUnknown: true,
         abortEarly: true,
       },
-    }),
-    ThrottlerModule.forRoot({
-      throttlers: [
-        {
-          ttl: 60000, // 1 minute
-          limit: 10, // 10 requests per minute
-        },
-      ],
-    }),
-    CacheModule.register({
-      ttl: 5000, // milliseconds
       isGlobal: true,
     }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
+
+    // ─── Rate limiting (global, per-IP) ────────────────────────────────────────
+    ThrottlerModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'better-sqlite3',
-        database: configService.get<string>('DB_PATH') || './app.db',
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get<string>('ENVIRONMENT') !== 'prod',
-        logging: configService.get<string>('ENVIRONMENT') === 'dev',
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            ttl: config.get<number>('THROTTLE.TTL') ?? 60_000,
+            limit: config.get<number>('THROTTLE.LIMIT') ?? 100,
+          },
+        ],
       }),
     }),
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
+
+    // ─── Redis-backed cache ─────────────────────────────────────────────────────
+    CacheModule.registerAsync({
+      isGlobal: true,
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
+      useFactory: (config: ConfigService) => {
+        const host = config.get<string>('REDIS.HOST') ?? 'localhost';
+        const port = config.get<number>('REDIS.PORT') ?? 6379;
+        const password = config.get<string>('REDIS.PASSWORD') ?? '';
+        const url = password
+          ? `redis://:${password}@${host}:${port}`
+          : `redis://${host}:${port}`;
+        return {
+          stores: [createKeyv(url)],
+          ttl: 60_000,
+        };
+      },
+    }),
+
+    // ─── Database (PostgreSQL via TypeORM) ─────────────────────────────────────
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const env = config.get<string>('ENVIRONMENT') ?? 'development';
+        const isProd = env === 'prod' || env === 'production';
+        return {
+          type: 'postgres',
+          url: config.get<string>('DATABASE_URL'),
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize: !isProd,
+          logging: !isProd,
+          // Connection pool settings
+          extra: {
+            max: 20,   // max pool size
+            min: 2,    // min idle connections
+            idleTimeoutMillis: 30_000,
+            connectionTimeoutMillis: 5_000,
+          },
+          // Read-replica example:
+          // replication: {
+          //   master: { url: config.get('DATABASE_URL') },
+          //   slaves: [{ url: config.get('DATABASE_REPLICA_URL') }],
+          // },
+        };
+      },
+    }),
+
+    // ─── BullMQ (Redis job queues) ──────────────────────────────────────────────
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
         connection: {
-          host: configService.get<string>('REDIS_HOST') || 'localhost',
-          port: configService.get<number>('REDIS_PORT') || 6379,
+          host: config.get<string>('REDIS.HOST') ?? 'localhost',
+          port: config.get<number>('REDIS.PORT') ?? 6379,
+          password: config.get<string>('REDIS.PASSWORD') || undefined,
+        },
+        defaultJobOptions: {
+          removeOnComplete: { count: 1000 },
+          removeOnFail: { count: 5000 },
         },
       }),
     }),
+
+    // ─── BullBoard (queue monitoring UI at /bull-board) ────────────────────────
+    BullBoardModule.forRoot({
+      route: '/bull-board',
+      adapter: ExpressAdapter,
+    }),
+
+    // ─── Feature modules ────────────────────────────────────────────────────────
     HealthModule,
     UsersModule,
     AuthModule,
     MailModule,
+    QueuesModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    // Global rate-limiting guard (proxy-aware)
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerBehindProxyGuard,
+    },
+    // Global request/response logging
     {
       provide: APP_INTERCEPTOR,
-      useClass: CacheInterceptor,
+      useClass: LoggingInterceptor,
+    },
+    // Global cache-invalidation interceptor
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: CacheInvalidationInterceptor,
     },
   ],
 })
-export class AppModule {
-  constructor(private readonly dataSource: DataSource) {}
-}
+export class AppModule {}

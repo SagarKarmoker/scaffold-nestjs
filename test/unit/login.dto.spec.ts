@@ -1,4 +1,4 @@
-import { LoginDto } from 'src/auth/dto/login.dto';
+import { LoginDto } from 'src/modules/auth/dto/login.dto';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 

@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scaffold-nest-config
+data:
+  NODE_ENV: "production"
+  ENVIRONMENT: "production"
+  PORT: "8080"
+  SERVER_URL: "http://scaffold-nest"
+  CLUSTERING: "false"
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  THROTTLE_TTL: "60000"
+  THROTTLE_LIMIT: "100"
+  CORS_ORIGIN: "https://your-frontend.example.com"
+  JWT_EXPIRATION: "1d"
+  JWT_REFRESH_EXPIRATION: "7d"
+
+# ─── Secrets (create separately – never commit real values) ──────────────────
+# kubectl create secret generic scaffold-nest-secrets \
+#   --from-literal=DATABASE_URL='postgresql://user:pass@host:5432/db' \
+#   --from-literal=JWT_SECRET='<min-32-char-random-string>' \
+#   --from-literal=JWT_REFRESH_SECRET='<min-32-char-random-string>' \
+#   --from-literal=REDIS_PASSWORD='<redis-password>'

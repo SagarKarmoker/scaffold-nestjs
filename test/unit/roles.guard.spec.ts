@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { RolesGuard, ROLES_KEY } from 'src/auth/guards/roles.guard';
-import { UserRoles } from 'src/utils/roles.enum';
+import { RolesGuard, ROLES_KEY } from 'src/modules/auth/guards/roles.guard';
+import { UserRoles } from 'src/common/utils/roles.enum';
 
 describe('RolesGuard', () => {
   let guard: RolesGuard;

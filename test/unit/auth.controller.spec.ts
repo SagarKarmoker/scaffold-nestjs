@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthGuard } from '@nestjs/passport';
-import { AuthController } from 'src/auth/auth.controller';
-import { AuthService, TokenResponse } from 'src/auth/auth.service';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { User } from 'src/users/entities/user.entity';
-import { RegisterDto } from 'src/auth/dto/register.dto';
-import { UserRoles } from 'src/utils/roles.enum';
+import { AuthController } from 'src/modules/auth/auth.controller';
+import { AuthService, TokenResponse } from 'src/modules/auth/auth.service';
+import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/modules/auth/guards/roles.guard';
+import { User } from 'src/modules/users/entities/user.entity';
+import { RegisterDto } from 'src/modules/auth/dto/register.dto';
+import { UserRoles } from 'src/common/utils/roles.enum';
 
 describe('AuthController', () => {
   let controller: AuthController;

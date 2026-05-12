@@ -1,96 +1,88 @@
-# Scaffold Nest
+# Scaffold NestJS
 
-A production-ready NestJS application scaffold with JWT authentication, API versioning, and best practices.
+A **production-ready NestJS monolith** with Redis caching, BullMQ job queues, PostgreSQL, clustering, Kubernetes support, and full observability.
 
-## Features
+## Architecture
 
-- **API Versioning** - `/api/v1` prefix with URI-based versioning
-- **Swagger** - Auto-generated docs at `/v1/docs`
-- **Authentication** - Passport.js + JWT with refresh tokens (single session)
-- **Security** - Helmet, CORS, rate limiting (10 req/min), bcrypt
-- **Validation** - class-validator with whitelist + forbidNonWhitelisted
-- **Logging** - Winston with file rotation + request correlation (`x-request-id`)
-- **Error Handling** - Global filter distinguishes 4xx (warn) vs 5xx (error)
-- **Health Checks** - `/health`, `/ready`, `/live` via @nestjs/terminus
-- **Graceful Shutdown** - Handles SIGTERM/SIGINT
-- **Email Queue** - BullMQ for async email processing with retry (3 attempts, exponential backoff)
-- **Modern Email Templates** - Responsive HTML templates for welcome & password reset
-- **Testing** - 108 tests (90 unit + 18 e2e) with supertest
+| Feature | Implementation |
+|---|---|
+| **Clustering** | Node.js `cluster` (in-process) or PM2 cluster mode |
+| **Rate Limiting** | `@nestjs/throttler` – 100 req/min/IP, proxy-aware |
+| **Caching** | `@nestjs/cache-manager` + Redis (`@keyv/redis`) |
+| **Job Queues** | BullMQ + Redis, BullBoard UI at `/bull-board` |
+| **Database** | TypeORM + PostgreSQL with connection pool (max 20) |
+| **Security** | Helmet, CORS, ValidationPipe (`whitelist` + `forbidNonWhitelisted`) |
+| **Logging** | Winston, file rotation, `x-request-id` correlation |
+| **Health** | `/health` (DB + Redis), `/health/ready` |
+| **API Docs** | Swagger at `/v1/docs` |
 
 ## Quick Start
 
 ```bash
+# Install
 pnpm install
+cp .env.example .env
+
+# Start infra (PostgreSQL + Redis) and app
+docker-compose up --build
+
+# Or run infra in background, app with hot-reload
+docker-compose up postgres redis -d
 pnpm dev
 ```
 
-## Configuration
+- **API**: `http://localhost:8080/api/v1`
+- **Swagger**: `http://localhost:8080/v1/docs`
+- **BullBoard**: `http://localhost:8080/bull-board`
 
-Create `.env`:
+## API Overview
 
-```env
-PORT=8080
-ENVIRONMENT=development
-SERVER_URL=http://localhost
-DB_PATH=./app.db
-JWT_SECRET=your-secret-key-min-32-chars
-JWT_REFRESH_SECRET=your-refresh-secret-min-32-chars
-MAIL_HOST=smtp.example.com
-MAIL_PORT=587
-SMTP_USER=you@example.com
-SMTP_PASS=your-password
-APP_NAME=MyApp
-DASHBOARD_URL=http://localhost:3000/dashboard
-RESET_URL=http://localhost:3000/reset-password
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/auth/register` | No | Register → access + refresh tokens |
+| `POST` | `/auth/login` | No | Login |
+| `POST` | `/auth/refresh` | No | Refresh tokens |
+| `POST` | `/auth/logout` | Yes | Revoke tokens |
+| `GET` | `/auth/profile` | Yes | Current user |
+| `POST` | `/orders` | Yes | Create order (queues background job, returns 201) |
+| `GET` | `/orders` | Yes | List orders (paginated) |
+| `GET` | `/orders/:id` | Yes | Get order (Redis cached 60 s) |
+| `PUT` | `/orders/:id` | Yes | Update order (invalidates cache) |
+| `DELETE` | `/orders/:id` | Yes | Delete order |
+| `POST` | `/notify` | No | Queue email notification (returns 202) |
+| `GET` | `/notify/metrics` | No | Email queue metrics |
+| `GET` | `/health` | No | Liveness probe (DB + Redis) |
+| `GET` | `/health/ready` | No | Readiness probe |
+
+## Scaling
+
+```bash
+# Option 1 – In-process clustering
+CLUSTERING=true node dist/main.js
+
+# Option 2 – PM2 (recommended for VMs)
+pnpm build && pm2 start ecosystem.config.js
+
+# Option 3 – Kubernetes
+kubectl apply -f k8s/   # HPA: 2-10 replicas, CPU > 70%
 ```
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Hot reload |
-| `pnpm build` | Compile to dist/ |
-| `pnpm start:prod` | Run production |
-| `pnpm test` | Unit tests |
-| `pnpm test:e2e` | E2E tests |
-| `pnpm lint` | ESLint --fix |
-| `pnpm format` | Prettier write |
-
-## API
-
-- Base: `http://localhost:8080/api/v1`
-- Swagger: `http://localhost:8080/v1/docs`
-- Health: `http://localhost:8080/health`
-
-### Auth Endpoints
-
-| Endpoint | Method | Auth |
-|----------|--------|------|
-| `/auth/register` | POST | No |
-| `/auth/login` | POST | No |
-| `/auth/refresh` | POST | No |
-| `/auth/profile` | GET | Yes |
-| `/auth/logout` | POST | Yes |
-
-### Role Protection
-
-```typescript
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRoles.ADMIN)
-@Get('admin')
-adminOnly() {}
+```bash
+pnpm dev          # Hot reload
+pnpm build        # Compile to dist/
+pnpm start:prod   # Run compiled output
+pnpm test         # Unit tests (Jest, *.spec.ts)
+pnpm test:e2e     # E2E tests (test/jest-e2e.json)
+pnpm lint         # ESLint --fix
+pnpm format       # Prettier write
 ```
 
 ## Tech Stack
 
-- NestJS 11
-- pnpm + TypeScript (ES2023, strict null checks)
-- Passport.js + JWT + bcrypt
-- TypeORM + better-sqlite3
-- BullMQ + nodemailer
-- Winston + Jest + Supertest
+NestJS 11 | TypeScript (ES2023) | pnpm | PostgreSQL + TypeORM | Redis + BullMQ | Passport.js + JWT | Winston | Jest + Supertest | Docker + K8s
 
-## Refs
+## Agent Setup
 
-- Agent instructions: `AGENTS.md`
-- Production guide: `PRODUCTION_GUIDE.md`
+See `AGENTS.md` for developer instructions tailored for LLM coding sessions.

@@ -1,20 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { AuthService } from 'src/auth/auth.service';
-import { UsersService } from 'src/users/users.service';
-import { RefreshTokenService } from 'src/auth/refresh-token.service';
-import { User } from 'src/users/entities/user.entity';
-import { RegisterDto } from 'src/auth/dto/register.dto';
+import { AuthService } from 'src/modules/auth/auth.service';
+import { UsersService } from 'src/modules/users/users.service';
+import { RefreshTokenService } from 'src/modules/auth/refresh-token.service';
+import { User } from 'src/modules/users/entities/user.entity';
+import { RegisterDto } from 'src/modules/auth/dto/register.dto';
 import {
   UserAlreadyExistsException,
   UserNotFoundException,
   InvalidCredentialsException,
-} from 'src/auth/exceptions/auth.exception';
-import { comparePasswords } from 'src/utils/password.utils';
-import { UserRoles } from 'src/utils/roles.enum';
+} from 'src/modules/auth/exceptions/auth.exception';
+import { comparePasswords } from 'src/common/utils/password.utils';
+import { UserRoles } from 'src/common/utils/roles.enum';
 
-jest.mock('src/utils/password.utils', () => ({
+jest.mock('src/common/utils/password.utils', () => ({
   hashPassword: jest.fn().mockResolvedValue('hashedPassword'),
   comparePasswords: jest.fn(),
 }));
