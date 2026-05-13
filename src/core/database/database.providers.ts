@@ -15,7 +15,7 @@ export const databaseProviders = [
           ? new DataSource({
               type: dbType,
               database: configService.get<string>('DB_PATH', 'database.sqlite'),
-              entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+              entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
               synchronize:
                 configService.get<string>('ENVIRONMENT') === 'development',
             })
@@ -26,9 +26,13 @@ export const databaseProviders = [
               username: configService.get<string>('DB_USERNAME')!,
               password: configService.get<string>('DB_PASSWORD')!,
               database: configService.get<string>('DB_NAME')!,
-              entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-              synchronize:
-                configService.get<string>('ENVIRONMENT') === 'development',
+              entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
+              synchronize: false,
+              migrations: [__dirname + '/../../migrations/*{.ts,.js}'],
+              migrationsRun: false,
+              extra : { // connection pooling options
+                connectionLimit: configService.get<number>('DB_CONNECTION_LIMIT', 10),
+              }
             });
 
       return dataSource.initialize();

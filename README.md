@@ -79,6 +79,37 @@ pnpm lint         # ESLint --fix
 pnpm format       # Prettier write
 ```
 
+## Database Migrations
+
+Migrations are the **single source of truth** for schema changes. `synchronize` is permanently disabled for PostgreSQL — never rely on auto-sync against a real database.
+
+```bash
+# Generate a migration after changing an entity
+pnpm migration:generate src/migrations/<MigrationName>
+
+# Create a blank migration manually
+pnpm migration:create src/migrations/<MigrationName>
+
+# Apply all pending migrations
+pnpm migration:run
+
+# Revert the last applied migration
+pnpm migration:revert
+
+# Show applied / pending status
+pnpm migration:show
+```
+
+**Workflow after editing an entity:**
+1. Modify `*.entity.ts`
+2. Run `pnpm migration:generate src/migrations/<DescriptiveName>`
+3. Review the generated file in `src/migrations/`
+4. Run `pnpm migration:run` to apply
+
+> **`synchronize` behaviour:** disabled (`false`) for PostgreSQL in all environments. Only enabled for SQLite local dev. Never enable it against a real database — it can silently drop columns.
+
+The CLI data source config is at `src/core/database/data-source.ts`. Entities glob: `src/**/*.entity.{ts,js}`. Migrations: `src/migrations/*`.
+
 ## Tech Stack
 
 NestJS 11 | TypeScript (ES2023) | pnpm | PostgreSQL + TypeORM | Redis + BullMQ | Passport.js + JWT | Winston | Jest + Supertest | Docker + K8s

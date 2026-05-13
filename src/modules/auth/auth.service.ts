@@ -99,6 +99,29 @@ export class AuthService {
     return { message: 'Email verified successfully.' };
   }
 
+  async resendVerificationCode(email: string): Promise<{ message: string }> {
+    // Always return the same message to prevent user enumeration
+    const message = 'If that account exists and is unverified, a new code has been sent.';
+
+    const user = await this.usersService.findOneByEmail(email);
+    if (!user || user.isVerified) return { message };
+
+    // Enforce a cooldown: don't resend if a code was issued recently (last 2 min)
+    const existing = await this.cacheManager.get<string>(`${VERIFY_CODE_PREFIX}${email}`);
+    const cooldownKey = `verify_cooldown:${email}`;
+    const onCooldown = await this.cacheManager.get<boolean>(cooldownKey);
+    if (onCooldown && existing) {
+      throw new BadRequestException('Please wait before requesting another code.');
+    }
+
+    const code = this.generateSecureCode();
+    await this.cacheManager.set(`${VERIFY_CODE_PREFIX}${email}`, code, VERIFY_CODE_TTL_MS);
+    await this.cacheManager.set(cooldownKey, true, 2 * 60 * 1000); // 2-min cooldown
+    await this.mailService.sendVerificationEmail(user.email, user.name, code);
+
+    return { message };
+  }
+
   async validateUser(email: string, password: string): Promise<User | null> {
     try {
       const lockKey = `${LOGIN_FAIL_PREFIX}${email}`;
