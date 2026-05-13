@@ -19,7 +19,11 @@ export const CACHE_INVALIDATE_KEYS = 'cache_invalidate_keys';
  */
 export function CacheInvalidate(...keys: string[]): MethodDecorator {
   return (target, propertyKey, descriptor) => {
-    Reflect.defineMetadata(CACHE_INVALIDATE_KEYS, keys, descriptor.value as object);
+    Reflect.defineMetadata(
+      CACHE_INVALIDATE_KEYS,
+      keys,
+      descriptor.value as object,
+    );
     return descriptor;
   };
 }
@@ -39,7 +43,8 @@ export class CacheInvalidationInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const method = context
       .switchToHttp()
-      .getRequest<{ method: string }>().method.toUpperCase();
+      .getRequest<{ method: string }>()
+      .method.toUpperCase();
 
     const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
     if (!isMutation) {

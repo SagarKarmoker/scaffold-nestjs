@@ -26,28 +26,30 @@ export class LoggingInterceptor implements NestInterceptor {
     response.setHeader('x-request-id', requestId);
 
     return next.handle().pipe(
-      tap(() => {
-        const duration = Date.now() - startTime;
-        this.logger.http(`${request.method} ${request.url}`, {
-          requestId,
-          method: request.method,
-          url: request.url,
-          status: response.statusCode,
-          duration: `${duration}ms`,
-          ip: request.ip,
-          userAgent: request.headers['user-agent'],
-        });
-      }),
-      tap((error) => {
-        const duration = Date.now() - startTime;
-        this.logger.error(`${request.method} ${request.url}`, {
-          requestId,
-          method: request.method,
-          url: request.url,
-          status: response.statusCode,
-          duration: `${duration}ms`,
-          error: error.message,
-        });
+      tap({
+        next: () => {
+          const duration = Date.now() - startTime;
+          this.logger.http(`${request.method} ${request.url}`, {
+            requestId,
+            method: request.method,
+            url: request.url,
+            status: response.statusCode,
+            duration: `${duration}ms`,
+            ip: request.ip,
+            userAgent: request.headers['user-agent'],
+          });
+        },
+        error: (err: Error) => {
+          const duration = Date.now() - startTime;
+          this.logger.error(`${request.method} ${request.url}`, {
+            requestId,
+            method: request.method,
+            url: request.url,
+            status: response.statusCode,
+            duration: `${duration}ms`,
+            error: err.message,
+          });
+        },
       }),
     );
   }

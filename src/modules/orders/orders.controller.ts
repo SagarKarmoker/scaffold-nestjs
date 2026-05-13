@@ -42,20 +42,19 @@ export class OrdersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create order (async processing, returns 201)' })
-  @ApiCreatedResponse({ description: 'Order accepted and queued for processing' })
-  create(
-    @Body() createOrderDto: CreateOrderDto,
-    @CurrentUser() user: User,
-  ) {
+  @ApiCreatedResponse({
+    description: 'Order accepted and queued for processing',
+  })
+  create(@Body() createOrderDto: CreateOrderDto, @CurrentUser() user: User) {
     return this.ordersService.create(createOrderDto, user?.id);
   }
 
   @Get()
   @ApiOperation({ summary: 'List all orders (paginated)' })
   @ApiOkResponse({ description: 'Paginated list of orders' })
-  @Throttle({ default: { limit: 200, ttl: 60_000 } }) // relaxed limit for lists
-  findAll(@Query() pagination: PaginationDto) {
-    return this.ordersService.findAll(pagination);
+  @Throttle({ default: { limit: 200, ttl: 60_000 } })
+  findAll(@Query() pagination: PaginationDto, @CurrentUser() user: User) {
+    return this.ordersService.findAll(pagination, user?.id);
   }
 
   /**
@@ -66,8 +65,11 @@ export class OrdersController {
   @Get(':id')
   @ApiOperation({ summary: 'Get order by ID (cached 60 s)' })
   @ApiOkResponse({ description: 'Order details' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.ordersService.findOne(id);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.ordersService.findOne(id, user?.id);
   }
 
   /**
@@ -79,14 +81,18 @@ export class OrdersController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateOrderDto: UpdateOrderDto,
+    @CurrentUser() user: User,
   ) {
-    return this.ordersService.update(id, updateOrderDto);
+    return this.ordersService.update(id, updateOrderDto, user?.id);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete order (invalidates cache)' })
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.ordersService.remove(id);
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.ordersService.remove(id, user?.id);
   }
 }

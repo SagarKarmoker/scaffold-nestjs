@@ -5,7 +5,19 @@ import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { QUEUE_NAMES } from './constants/queue-names';
 import { EmailProcessor } from './processors/email.processor';
 import { EmailProducerService } from './services/email-producer.service';
-import { NotifyController } from './controllers/notify.controller';
+
+const enableBullBoard = process.env.ENABLE_BULL_BOARD === 'true' ||
+  process.env.ENVIRONMENT !== 'production';
+
+function getBullBoardFeature(): any[] {
+  if (!enableBullBoard) return [];
+  return [
+    BullBoardModule.forFeature(
+      { name: QUEUE_NAMES.EMAIL, adapter: BullMQAdapter },
+      { name: QUEUE_NAMES.ORDER_PROCESSING, adapter: BullMQAdapter },
+    ),
+  ];
+}
 
 @Module({
   imports: [
@@ -29,13 +41,9 @@ import { NotifyController } from './controllers/notify.controller';
         },
       },
     ),
-    BullBoardModule.forFeature(
-      { name: QUEUE_NAMES.EMAIL, adapter: BullMQAdapter },
-      { name: QUEUE_NAMES.ORDER_PROCESSING, adapter: BullMQAdapter },
-    ),
+    ...getBullBoardFeature(),
   ],
   providers: [EmailProcessor, EmailProducerService],
-  controllers: [NotifyController],
   exports: [EmailProducerService, BullModule],
 })
 export class QueuesModule {}

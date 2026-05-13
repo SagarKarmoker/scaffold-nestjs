@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email — {{appName}}</title>
+    <style>
+        body { margin:0; padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; background:#f5f5f7; color:#1a1a2e; }
+        .container { max-width:600px; margin:0 auto; padding:40px 20px; }
+        .email-wrapper { background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.08); }
+        .header { background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); padding:48px 30px; text-align:center; }
+        .header h1 { color:#fff; font-size:28px; font-weight:700; margin:0; }
+        .header p { color:rgba(255,255,255,0.9); font-size:16px; margin:12px 0 0; }
+        .content { padding:40px 30px; }
+        .content p { color:#4a4a68; font-size:16px; margin:0 0 20px; line-height:1.7; }
+        .code-container { background:linear-gradient(135deg,#f8f9ff,#f0f4ff); border:2px dashed #cbd5e0; border-radius:16px; padding:32px; text-align:center; margin:32px 0; }
+        .code-label { color:#8c8c9a; font-size:14px; margin-bottom:16px; text-transform:uppercase; letter-spacing:1px; }
+        .verify-code { font-size:36px; font-weight:700; color:#667eea; letter-spacing:8px; font-family:'SF Mono',Monaco,'Courier New',monospace; }
+        .button-wrapper { text-align:center; margin:32px 0; }
+        .cta-button { display:inline-block; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; text-decoration:none; padding:16px 48px; border-radius:12px; font-weight:600; font-size:16px; }
+        .expires { color:#8c8c9a; font-size:13px; margin:16px 0 0; }
+        .footer { background:#f8f9fa; padding:30px; text-align:center; border-top:1px solid #e9ecef; }
+        .footer p { color:#8c8c9a; font-size:13px; margin:0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="email-wrapper">
+            <div class="header">
+                <h1>Verify Your Email</h1>
+                <p>One last step to complete your registration</p>
+            </div>
+            <div class="content">
+                <p>Hi {{name}},</p>
+                <p>Thank you for creating an account. Please verify your email address using the code below.</p>
+                <div class="code-container">
+                    <p class="code-label">Your Verification Code</p>
+                    <p class="verify-code">{{code}}</p>
+                </div>
+                <p>This code expires in <strong>{{expiryMinutes}} minutes</strong>. If you didn't create an account, you can safely ignore this email.</p>
+                <div class="button-wrapper">
+                    <a href="{{verifyUrl}}" class="cta-button">Verify Email →</a>
+                </div>
+                <p class="expires">Or copy and paste this URL: {{verifyUrl}}</p>
+            </div>
+            <div class="footer">
+                <p>© {{year}} {{appName}}. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

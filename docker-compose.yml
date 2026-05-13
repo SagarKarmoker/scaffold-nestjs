@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_DB: scaffold_nest
     ports:
       - '5432:5432'
@@ -45,16 +45,16 @@ services:
       ENVIRONMENT: production
       PORT: 8080
       SERVER_URL: http://localhost
-      DATABASE_URL: postgresql://postgres:password@postgres:5432/scaffold_nest
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:password@postgres:5432/scaffold_nest}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ''
+      REDIS_PASSWORD: '${REDIS_PASSWORD:-}'
       THROTTLE_TTL: 60000
       THROTTLE_LIMIT: 100
-      CLUSTERING: 'false'   # set 'true' to use in-process Node.js cluster
-      JWT_SECRET: change-me-to-a-secure-random-value-min-32-chars
-      JWT_REFRESH_SECRET: change-me-refresh-also-min-32-chars!!
-      CORS_ORIGIN: http://localhost:3000
+      CLUSTERING: '${CLUSTERING:-false}'
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
     depends_on:
       postgres:
         condition: service_healthy

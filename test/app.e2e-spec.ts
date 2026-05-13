@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
+import {
+  INestApplication,
+  ValidationPipe,
+  VersioningType,
+} from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
@@ -30,18 +34,22 @@ describe('API Endpoints (e2e)', () => {
       type: VersioningType.URI,
     });
 
-    app.useGlobalPipes(new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
 
     await app.init();
   });
 
   afterAll(async () => {
     const dataSource = app.get(DataSource);
-    await dataSource.query('DELETE FROM users WHERE email = ?', [testUser.email]);
+    await dataSource.query('DELETE FROM users WHERE email = ?', [
+      testUser.email,
+    ]);
     await app.close();
   });
 
@@ -202,7 +210,11 @@ describe('API Endpoints (e2e)', () => {
     it('should reject extra fields due to forbidNonWhitelisted', () => {
       return request(app.getHttpServer())
         .post('/api/v1/auth/register')
-        .send({ ...testUser, email: 'newuser@test.com', extraField: 'not allowed' })
+        .send({
+          ...testUser,
+          email: 'newuser@test.com',
+          extraField: 'not allowed',
+        })
         .expect(400);
     });
 

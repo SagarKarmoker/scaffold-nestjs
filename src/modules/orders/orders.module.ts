@@ -5,7 +5,7 @@ import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 import { Order } from './entities/order.entity';
 import { OrderProcessingProcessor } from './processors/order-processing.processor';
-import { QUEUE_NAMES } from 'src/modules/queues/constants/queue-names';
+import { QUEUE_NAMES } from 'src/core/queues/constants/queue-names';
 
 @Module({
   imports: [

@@ -15,6 +15,11 @@ lerna-debug.log*
 # OS
 .DS_Store
 
+# SQLite artifacts (dev only – never commit database files)
+*.db
+*.sqlite
+*.sqlite3
+
 # Tests
 /coverage
 /.nyc_output

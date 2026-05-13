@@ -4,7 +4,10 @@ import { Job } from 'bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order, OrderStatus } from '../entities/order.entity';
-import { QUEUE_NAMES, ORDER_JOB_NAMES } from 'src/modules/queues/constants/queue-names';
+import {
+  QUEUE_NAMES,
+  ORDER_JOB_NAMES,
+} from 'src/core/queues/constants/queue-names';
 
 export interface ProcessOrderJobData {
   orderId: string;

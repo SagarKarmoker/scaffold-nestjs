@@ -9,9 +9,11 @@ import { Injectable, ExecutionContext } from '@nestjs/common';
 @Injectable()
 export class ThrottlerBehindProxyGuard extends ThrottlerGuard {
   protected async getTracker(req: Record<string, unknown>): Promise<string> {
-    const forwarded = (req.headers as Record<string, string>)['x-forwarded-for'];
+    const forwarded = (req.headers as Record<string, string>)[
+      'x-forwarded-for'
+    ];
     if (forwarded) {
-      return (forwarded as string).split(',')[0].trim();
+      return forwarded.split(',')[0].trim();
     }
     return (req.ip as string) ?? 'unknown';
   }

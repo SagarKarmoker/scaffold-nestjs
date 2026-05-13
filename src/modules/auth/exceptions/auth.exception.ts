@@ -35,8 +35,8 @@ export class SessionExpiredException extends AuthException {
 }
 
 export class UserAlreadyExistsException extends AuthException {
-  constructor(email: string) {
-    super(`User with email ${email} already exists`, HttpStatus.BAD_REQUEST);
+  constructor() {
+    super('Registration failed. Please check your details and try again.', HttpStatus.BAD_REQUEST);
   }
 }
 

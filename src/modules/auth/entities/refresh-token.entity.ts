@@ -13,7 +13,7 @@ export class RefreshToken extends BaseEntity {
   @Column({ type: 'uuid' })
   userId!: string;
 
-  @Column({ type: 'datetime' })
+  @Column({ type: 'timestamp' })
   expiresAt!: Date;
 
   @Column({ default: false })

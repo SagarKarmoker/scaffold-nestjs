@@ -13,15 +13,19 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { envValidationSchema } from './config/env.validation';
 import { LoggerModule } from './common/logger.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { MailModule } from './modules/mail/mail.module';
+import { MailModule } from './core/mail/mail.module';
 import { BullModule } from '@nestjs/bullmq';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
 import { OrdersModule } from './modules/orders/orders.module';
-import { QueuesModule } from './modules/queues/queues.module';
+import { QueuesModule } from './core/queues/queues.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { ThrottlerBehindProxyGuard } from './core/guards/throttler-behind-proxy.guard';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { CacheInvalidationInterceptor } from './core/interceptors/cache-invalidation.interceptor';
+
+const enableBullBoard = process.env.ENABLE_BULL_BOARD === 'true' ||
+  process.env.ENVIRONMENT !== 'production';
 
 @Module({
   imports: [
@@ -59,7 +63,7 @@ import { CacheInvalidationInterceptor } from './core/interceptors/cache-invalida
         const port = config.get<number>('REDIS.PORT') ?? 6379;
         const password = config.get<string>('REDIS.PASSWORD') ?? '';
         const url = password
-          ? `redis://:${password}@${host}:${port}`
+          ? `redis://:${encodeURIComponent(password)}@${host}:${port}`
           : `redis://${host}:${port}`;
         return {
           stores: [createKeyv(url)],
@@ -73,17 +77,17 @@ import { CacheInvalidationInterceptor } from './core/interceptors/cache-invalida
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const env = config.get<string>('ENVIRONMENT') ?? 'development';
-        const isProd = env === 'prod' || env === 'production';
+        const isProd = env === 'production' || env === 'prod';
         return {
           type: 'postgres',
           url: config.get<string>('DATABASE_URL'),
-          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          entities: [__dirname + '/**/*.entity.js'],
           synchronize: !isProd,
           logging: !isProd,
           // Connection pool settings
           extra: {
-            max: 20,   // max pool size
-            min: 2,    // min idle connections
+            max: 20, // max pool size
+            min: 2, // min idle connections
             idleTimeoutMillis: 30_000,
             connectionTimeoutMillis: 5_000,
           },
@@ -112,19 +116,22 @@ import { CacheInvalidationInterceptor } from './core/interceptors/cache-invalida
       }),
     }),
 
-    // ─── BullBoard (queue monitoring UI at /bull-board) ────────────────────────
-    BullBoardModule.forRoot({
-      route: '/bull-board',
-      adapter: ExpressAdapter,
-    }),
-
     // ─── Feature modules ────────────────────────────────────────────────────────
     HealthModule,
     UsersModule,
     AuthModule,
     MailModule,
     QueuesModule,
+    ...(enableBullBoard
+      ? [
+          BullBoardModule.forRoot({
+            route: '/bull-board',
+            adapter: ExpressAdapter,
+          }),
+        ]
+      : []),
     OrdersModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [

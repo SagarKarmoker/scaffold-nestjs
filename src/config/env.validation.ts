@@ -11,20 +11,13 @@ export const envValidationSchema = Joi.object({
   CORS_ORIGINS: Joi.string().default(''),
 
   // Database
-  DATABASE_URL: Joi.string().default(
-    'postgresql://postgres:password@localhost:5432/scaffold_nest',
-  ),
+  DATABASE_URL: Joi.string().required(),
   DATABASE_REPLICA_URL: Joi.string().default(''),
-  DB_PATH: Joi.string().default('./app.db'),
 
   // JWT
-  JWT_SECRET: Joi.string().default(
-    'your-super-secret-jwt-key-change-in-production',
-  ),
+  JWT_SECRET: Joi.string().required(),
   JWT_EXPIRATION: Joi.string().default('1d'),
-  JWT_REFRESH_SECRET: Joi.string().default(
-    'your-super-secret-refresh-token-key-change-in-production',
-  ),
+  JWT_REFRESH_SECRET: Joi.string().required(),
   JWT_REFRESH_EXPIRATION: Joi.string().default('7d'),
 
   // Mail
