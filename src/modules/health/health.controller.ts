@@ -5,7 +5,7 @@ import {
   HealthCheck,
 } from '@nestjs/terminus';
 import { RedisHealthIndicator } from './redis.health.indicator';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 
 @ApiTags('health')
@@ -17,12 +17,13 @@ export class HealthController {
     private readonly redis: RedisHealthIndicator,
   ) {}
 
-  // Protected: requires a valid JWT. Do NOT use this for k8s probes.
-  // Use /health/ready for liveness and readiness probes instead.
   @UseGuards(JwtAuthGuard)
   @Get()
   @HealthCheck()
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Detailed health check (authenticated)' })
+  @ApiOkResponse({ description: 'All services healthy', schema: { example: { status: 'ok', info: { database: { status: 'up' }, redis: { status: 'up' } } } } })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT' })
   check() {
     return this.health.check([
       () => this.db.pingCheck('database'),
@@ -32,6 +33,7 @@ export class HealthController {
 
   @Get('ready')
   @ApiOperation({ summary: 'Readiness / liveness probe (unauthenticated, safe for k8s)' })
+  @ApiOkResponse({ description: 'Service is up', schema: { example: { status: 'ok', timestamp: '2024-01-01T00:00:00.000Z' } } })
   ready() {
     return { status: 'ok', timestamp: new Date().toISOString() };
   }
