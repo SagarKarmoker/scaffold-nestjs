@@ -27,11 +27,7 @@ import { BullModule } from '@nestjs/bullmq';
       },
     }),
   ],
-  providers: [
-    MailService,
-    EmailConsumer,
-    EmailTemplatesService,
-  ],
+  providers: [MailService, EmailConsumer, EmailTemplatesService],
   exports: [MailService],
 })
 export class MailModule {}

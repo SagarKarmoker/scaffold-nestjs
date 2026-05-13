@@ -5,7 +5,6 @@ import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { QUEUE_NAMES } from './constants/queue-names';
 import { EmailProcessor } from './processors/email.processor';
 import { EmailProducerService } from './services/email-producer.service';
-import { NotifyController } from './controllers/notify.controller';
 
 @Module({
   imports: [
@@ -35,7 +34,6 @@ import { NotifyController } from './controllers/notify.controller';
     ),
   ],
   providers: [EmailProcessor, EmailProducerService],
-  controllers: [NotifyController],
   exports: [EmailProducerService, BullModule],
 })
 export class QueuesModule {}

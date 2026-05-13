@@ -13,12 +13,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { envValidationSchema } from './config/env.validation';
 import { LoggerModule } from './common/logger.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { MailModule } from './modules/mail/mail.module';
+import { MailModule } from './core/mail/mail.module';
 import { BullModule } from '@nestjs/bullmq';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
 import { OrdersModule } from './modules/orders/orders.module';
-import { QueuesModule } from './modules/queues/queues.module';
+import { QueuesModule } from './core/queues/queues.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { ThrottlerBehindProxyGuard } from './core/guards/throttler-behind-proxy.guard';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { CacheInvalidationInterceptor } from './core/interceptors/cache-invalidation.interceptor';
@@ -82,8 +83,8 @@ import { CacheInvalidationInterceptor } from './core/interceptors/cache-invalida
           logging: !isProd,
           // Connection pool settings
           extra: {
-            max: 20,   // max pool size
-            min: 2,    // min idle connections
+            max: 20, // max pool size
+            min: 2, // min idle connections
             idleTimeoutMillis: 30_000,
             connectionTimeoutMillis: 5_000,
           },
@@ -125,6 +126,7 @@ import { CacheInvalidationInterceptor } from './core/interceptors/cache-invalida
     MailModule,
     QueuesModule,
     OrdersModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [

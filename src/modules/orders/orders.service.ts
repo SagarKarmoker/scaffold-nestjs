@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  Inject,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -16,7 +11,7 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import {
   QUEUE_NAMES,
   ORDER_JOB_NAMES,
-} from 'src/modules/queues/constants/queue-names';
+} from 'src/core/queues/constants/queue-names';
 import {
   PaginationDto,
   PaginatedResult,
@@ -36,7 +31,10 @@ export class OrdersService {
     private readonly cache: Cache,
   ) {}
 
-  async create(createOrderDto: CreateOrderDto, userId?: string): Promise<Order> {
+  async create(
+    createOrderDto: CreateOrderDto,
+    userId?: string,
+  ): Promise<Order> {
     const order = this.orderRepository.create({
       ...createOrderDto,
       userId,
@@ -53,9 +51,7 @@ export class OrdersService {
     return saved;
   }
 
-  async findAll(
-    pagination: PaginationDto,
-  ): Promise<PaginatedResult<Order>> {
+  async findAll(pagination: PaginationDto): Promise<PaginatedResult<Order>> {
     const [data, total] = await this.orderRepository.findAndCount({
       order: { createdAt: 'DESC' },
       skip: pagination.skip,

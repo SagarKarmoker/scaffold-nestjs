@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { hashPassword, comparePasswords } from 'src/common/utils/password.utils';
+import {
+  hashPassword,
+  comparePasswords,
+} from 'src/common/utils/password.utils';
 import { UsersService } from 'src/modules/users/users.service';
 import { User } from 'src/modules/users/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';

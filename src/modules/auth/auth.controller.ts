@@ -2,7 +2,6 @@ import {
   Controller,
   Post,
   UseGuards,
-  Get,
   Request,
   Body,
   HttpCode,
@@ -12,9 +11,6 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService, TokenResponse } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { RolesGuard } from './guards/roles.guard';
-import { Roles } from './decorators/roles.decorator';
-import { UserRoles } from 'src/common/utils/roles.enum';
 import { User } from 'src/modules/users/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -61,25 +57,5 @@ export class AuthController {
     const refreshToken = req.headers.authorization?.replace('Bearer ', '');
     await this.authService.logout(req.user.id, refreshToken);
     return { message: 'Logged out successfully' };
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('profile')
-  getProfile(@Request() req: AuthenticatedRequest) {
-    const user = req.user;
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.ADMIN)
-  @Get('admin-only')
-  adminOnly() {
-    return { message: 'This is an admin-only endpoint' };
   }
 }

@@ -20,7 +20,9 @@ describe('HealthController', () => {
         {
           provide: TypeOrmHealthIndicator,
           useValue: {
-            pingCheck: jest.fn().mockResolvedValue({ database: { status: 'up' } }),
+            pingCheck: jest
+              .fn()
+              .mockResolvedValue({ database: { status: 'up' } }),
           },
         },
         {

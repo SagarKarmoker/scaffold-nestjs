@@ -42,11 +42,10 @@ export class OrdersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create order (async processing, returns 201)' })
-  @ApiCreatedResponse({ description: 'Order accepted and queued for processing' })
-  create(
-    @Body() createOrderDto: CreateOrderDto,
-    @CurrentUser() user: User,
-  ) {
+  @ApiCreatedResponse({
+    description: 'Order accepted and queued for processing',
+  })
+  create(@Body() createOrderDto: CreateOrderDto, @CurrentUser() user: User) {
     return this.ordersService.create(createOrderDto, user?.id);
   }
 
