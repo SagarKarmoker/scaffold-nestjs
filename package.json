@@ -17,7 +17,12 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "migration:generate": "pnpm run build && typeorm-ts-node-commonjs migration:generate -d src/core/database/data-source.ts",
+    "migration:create": "typeorm-ts-node-commonjs migration:create",
+    "migration:run": "typeorm-ts-node-commonjs migration:run -d src/core/database/data-source.ts",
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/core/database/data-source.ts",
+    "migration:show": "typeorm-ts-node-commonjs migration:show -d src/core/database/data-source.ts"
   },
   "dependencies": {
     "@bull-board/api": "^7.0.0",
@@ -77,6 +82,7 @@
     "@types/pg": "^8.20.0",
     "@types/supertest": "^7.0.0",
     "@types/uuid": "^11.0.0",
+    "dotenv": "^17.4.2",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",

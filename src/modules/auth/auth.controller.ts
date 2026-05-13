@@ -105,6 +105,18 @@ export class AuthController {
     return { message: 'Logged out successfully' };
   }
 
+  @Post('resend-verification')
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resend email verification code (rate-limited: 3/min)' })
+  @ApiBody({ type: ForgotPasswordDto })
+  @ApiOkResponse({ description: 'Code resent (same response whether account exists or is already verified)', schema: { example: { message: 'If that account exists and is unverified, a new code has been sent.' } } })
+  async resendVerification(
+    @Body() dto: ForgotPasswordDto,
+  ): Promise<{ message: string }> {
+    return this.authService.resendVerificationCode(dto.email);
+  }
+
   @Post('forgot-password')
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
