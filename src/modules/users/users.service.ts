@@ -87,6 +87,14 @@ export class UsersService {
     }
   }
 
+  async verifyEmail(id: string): Promise<void> {
+    await this.userRepository.update(id, { isVerified: true });
+  }
+
+  async updatePassword(id: string, hashedPassword: string): Promise<void> {
+    await this.userRepository.update(id, { password: hashedPassword });
+  }
+
   async delete(id: string): Promise<void> {
     if (!id) {
       throw new Error('User ID is required');

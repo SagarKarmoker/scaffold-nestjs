@@ -4,28 +4,13 @@ export default () => ({
   SERVER_URL: process.env.SERVER_URL || 'http://localhost',
   CLUSTERING: process.env.CLUSTERING === 'true',
 
-  // Database – PostgreSQL via URL (preferred) or individual params
-  DATABASE_URL:
-    process.env.DATABASE_URL ||
-    'postgresql://postgres:password@localhost:5432/scaffold_nest',
-  // DATABASE_REPLICA_URL is used for read-heavy queries (optional)
+  DATABASE_URL: process.env.DATABASE_URL,
   DATABASE_REPLICA_URL: process.env.DATABASE_REPLICA_URL || '',
-  DB_TYPE: process.env.DB_TYPE || 'postgres',
-  DB_HOST: process.env.DB_HOST || 'localhost',
-  DB_PORT: Number.parseInt(process.env.DB_PORT || '5432', 10),
-  DB_USERNAME: process.env.DB_USERNAME || 'postgres',
-  DB_PASSWORD: process.env.DB_PASSWORD || 'password',
-  DB_NAME: process.env.DB_NAME || 'scaffold_nest',
-  DB_PATH: process.env.DB_PATH || './app.db', // SQLite fallback
 
   JWT: {
-    SECRET:
-      process.env.JWT_SECRET ||
-      'your-super-secret-jwt-key-change-in-production',
+    SECRET: process.env.JWT_SECRET,
     EXPIRATION: process.env.JWT_EXPIRATION || '1d',
-    REFRESH_SECRET:
-      process.env.JWT_REFRESH_SECRET ||
-      'your-super-secret-refresh-token-key-change-in-production',
+    REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
     REFRESH_EXPIRATION: process.env.JWT_REFRESH_EXPIRATION || '7d',
   },
 

@@ -26,7 +26,7 @@ export class EmailConsumer extends WorkerHost {
       secure: false,
       auth: {
         user: this.configService.get<string>('SMTP_USER'),
-        pass: this.configService.get<string>('SMTP_PASS'),
+        pass: this.configService.get<string>('SMTP_PASSWORD'),
       },
     });
   }
@@ -35,6 +35,12 @@ export class EmailConsumer extends WorkerHost {
     switch (job.name) {
       case 'send-welcome-email':
         return this.sendWelcomeEmail(job.data.email, job.data.name);
+      case 'send-verification-email':
+        return this.sendVerificationEmail(
+          job.data.email,
+          job.data.name,
+          job.data.code,
+        );
       case 'send-password-reset-email':
         return this.sendPasswordResetEmail(
           job.data.email,
@@ -60,14 +66,35 @@ export class EmailConsumer extends WorkerHost {
     this.logger.log(`Welcome email sent to ${email}`);
   }
 
+  private async sendVerificationEmail(
+    email: string,
+    name: string,
+    code: string,
+  ) {
+    this.logger.log(`Sending verification email to ${email}`);
+
+    const html = this.templatesService.renderVerificationEmail({
+      email,
+      name,
+      code,
+      expiryMinutes: 30,
+    });
+
+    await this.transporter.sendMail({
+      from: this.fromEmail,
+      to: email,
+      subject: 'Verify Your Email Address',
+      html,
+    });
+    this.logger.log(`Verification email sent to ${email}`);
+  }
+
   private async sendPasswordResetEmail(
     email: string,
     token: string,
     name?: string,
   ) {
-    this.logger.log(
-      `Sending password reset email to ${email} with token ${token}`,
-    );
+    this.logger.log(`Sending password reset email to ${email}`);
 
     const html = this.templatesService.renderPasswordResetEmail({
       email,

@@ -30,17 +30,23 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      transformOptions: { enableImplicitConversion: true },
+      // enableImplicitConversion intentionally omitted — use explicit @Type()
+      // decorators on DTOs instead to avoid silent type coercion (CWE-915).
     }),
   );
 
   // API Versioning
-  app.setGlobalPrefix('api', { exclude: ['/bull-board'] });
+  app.setGlobalPrefix('api');
   app.enableVersioning({
     defaultVersion: '1',
     prefix: 'v',
     type: VersioningType.URI,
   });
+
+  const environment = configService.get<string>('ENVIRONMENT');
+  const isProduction = environment === 'production' || environment === 'prod';
+  const enableBullBoard =
+    process.env.ENABLE_BULL_BOARD === 'true' || !isProduction;
 
   // Security Middleware – Helmet with CSP
   app.use(
@@ -48,8 +54,8 @@ async function bootstrap() {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'"],
           imgSrc: ["'self'", 'data:', 'https:'],
         },
       },
@@ -58,6 +64,9 @@ async function bootstrap() {
   );
 
   // CORS – configurable via env (comma-separated origins)
+  // Note: CSRF protection is not required because all authenticated endpoints
+  // use the Authorization: Bearer header, which browsers cannot attach
+  // cross-origin without explicit CORS allowance (CWE-352 mitigated).
   const corsOrigins =
     configService.get<string>('CORS_ORIGIN') ||
     configService.get<string>('CORS_ORIGINS') ||
@@ -67,8 +76,15 @@ async function bootstrap() {
     .map((o) => o.trim())
     .filter(Boolean);
 
+  if (allowedOrigins.length === 0 && isProduction) {
+    winstonLogger.error(
+      'FATAL: CORS_ORIGIN is not configured. Application will not start.',
+    );
+    process.exit(1);
+  }
+
   app.enableCors({
-    origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+    origin: allowedOrigins.length > 0 ? allowedOrigins : false,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
@@ -81,27 +97,32 @@ async function bootstrap() {
 
   app.use(compression());
 
-  // Swagger
-  const environment = configService.get<string>('ENVIRONMENT');
+  // Swagger – only enabled in non-production environments
   const PORT = configService.get<number>('PORT');
   const SERVER_URL = configService.get<string>('SERVER_URL');
 
-  const config = new DocumentBuilder()
-    .setTitle('Scaffold Nest API')
-    .setDescription(
-      'Production-ready NestJS monolithic API with clustering, Redis cache, BullMQ queues, and PostgreSQL.',
-    )
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('v1/docs', app, documentFactory);
+  if (!isProduction) {
+    const config = new DocumentBuilder()
+      .setTitle('Scaffold Nest API')
+      .setDescription(
+        'Production-ready NestJS monolithic API with clustering, Redis cache, BullMQ queues, and PostgreSQL.',
+      )
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const documentFactory = () => SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('v1/docs', app, documentFactory);
+  }
 
   await app.listen(PORT!, () => {
     winstonLogger.info(`[Worker ${process.pid}] Environment: ${environment}`);
     winstonLogger.info(`Server running on ${SERVER_URL}:${PORT}`);
-    winstonLogger.info(`Swagger UI: ${SERVER_URL}:${PORT}/v1/docs`);
-    winstonLogger.info(`BullBoard: ${SERVER_URL}:${PORT}/bull-board`);
+    if (!isProduction) {
+      winstonLogger.info(`Swagger UI: ${SERVER_URL}:${PORT}/v1/docs`);
+    }
+    if (enableBullBoard) {
+      winstonLogger.info(`BullBoard: ${SERVER_URL}:${PORT}/bull-board`);
+    }
   });
 
   app.enableShutdownHooks();

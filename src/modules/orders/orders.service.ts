@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, Inject, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  Inject,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -51,8 +57,10 @@ export class OrdersService {
     return saved;
   }
 
-  async findAll(pagination: PaginationDto): Promise<PaginatedResult<Order>> {
+  async findAll(pagination: PaginationDto, userId?: string): Promise<PaginatedResult<Order>> {
+    const where = userId ? { userId } : {};
     const [data, total] = await this.orderRepository.findAndCount({
+      where,
       order: { createdAt: 'DESC' },
       skip: pagination.skip,
       take: pagination.limit,
@@ -60,23 +68,27 @@ export class OrdersService {
     return paginate(data, total, pagination);
   }
 
-  async findOne(id: string): Promise<Order> {
+  async findOne(id: string, userId?: string): Promise<Order> {
     const cacheKey = this.cacheKey(id);
     const cached = await this.cache.get<Order>(cacheKey);
     if (cached) {
       this.logger.debug(`Cache hit for order ${id}`);
+      if (userId && cached.userId !== userId) {
+        throw new ForbiddenException('Access denied');
+      }
       return cached;
     }
 
-    const order = await this.orderRepository.findOneBy({ id });
+    const where = userId ? { id, userId } : { id };
+    const order = await this.orderRepository.findOneBy(where);
     if (!order) throw new NotFoundException(`Order ${id} not found`);
 
     await this.cache.set(cacheKey, order, 60_000); // 60 s TTL
     return order;
   }
 
-  async update(id: string, updateOrderDto: UpdateOrderDto): Promise<Order> {
-    const order = await this.findOne(id);
+  async update(id: string, updateOrderDto: UpdateOrderDto, userId?: string): Promise<Order> {
+    const order = await this.findOne(id, userId);
     Object.assign(order, updateOrderDto);
     const updated = await this.orderRepository.save(order);
 
@@ -86,8 +98,8 @@ export class OrdersService {
     return updated;
   }
 
-  async remove(id: string): Promise<void> {
-    const order = await this.findOne(id);
+  async remove(id: string, userId?: string): Promise<void> {
+    const order = await this.findOne(id, userId);
     await this.orderRepository.remove(order);
     await this.cache.del(this.cacheKey(id));
     this.logger.debug(`Order ${id} deleted, cache invalidated`);

@@ -35,6 +35,29 @@ export class EmailTemplatesService {
     });
   }
 
+  renderVerificationEmail(data: {
+    name: string;
+    email: string;
+    code: string;
+    expiryMinutes: number;
+  }): string {
+    const template = fs.readFileSync(
+      path.join(__dirname, 'templates', 'verify-email.html'),
+      'utf-8',
+    );
+
+    const verifyUrl = `${this.configService.get<string>('VERIFY_EMAIL_URL') ?? 'http://localhost:3000/verify-email'}?email=${encodeURIComponent(data.email)}&code=${data.code}`;
+
+    return this.renderTemplate(template, {
+      name: data.name,
+      code: data.code,
+      expiryMinutes: data.expiryMinutes.toString(),
+      appName: this.appName,
+      year: this.year.toString(),
+      verifyUrl,
+    });
+  }
+
   renderPasswordResetEmail(data: {
     name: string;
     email: string;

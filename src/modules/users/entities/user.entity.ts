@@ -14,7 +14,7 @@ export class User extends BaseEntity {
   password!: string;
 
   @Column({
-    type: 'simple-enum',
+    type: 'enum',
     enum: UserRoles,
     default: UserRoles.USER,
   })
@@ -22,4 +22,7 @@ export class User extends BaseEntity {
 
   @Column({ default: 0 })
   sessionVersion!: number;
+
+  @Column({ default: false })
+  isVerified!: boolean;
 }

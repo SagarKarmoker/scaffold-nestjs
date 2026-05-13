@@ -23,6 +23,19 @@ export class MailService {
     }
   }
 
+  async sendVerificationEmail(email: string, name: string, code: string) {
+    try {
+      await this.emailQueue.add('send-verification-email', {
+        email,
+        name,
+        code,
+      });
+    } catch (error) {
+      this.logger.error('Error sending verification email', error);
+      throw error;
+    }
+  }
+
   async sendPasswordResetEmail(email: string, token: string, name?: string) {
     try {
       await this.emailQueue.add('send-password-reset-email', {

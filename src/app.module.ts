@@ -24,6 +24,9 @@ import { ThrottlerBehindProxyGuard } from './core/guards/throttler-behind-proxy.
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { CacheInvalidationInterceptor } from './core/interceptors/cache-invalidation.interceptor';
 
+const enableBullBoard = process.env.ENABLE_BULL_BOARD === 'true' ||
+  process.env.ENVIRONMENT !== 'production';
+
 @Module({
   imports: [
     LoggerModule,
@@ -60,7 +63,7 @@ import { CacheInvalidationInterceptor } from './core/interceptors/cache-invalida
         const port = config.get<number>('REDIS.PORT') ?? 6379;
         const password = config.get<string>('REDIS.PASSWORD') ?? '';
         const url = password
-          ? `redis://:${password}@${host}:${port}`
+          ? `redis://:${encodeURIComponent(password)}@${host}:${port}`
           : `redis://${host}:${port}`;
         return {
           stores: [createKeyv(url)],
@@ -74,11 +77,11 @@ import { CacheInvalidationInterceptor } from './core/interceptors/cache-invalida
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const env = config.get<string>('ENVIRONMENT') ?? 'development';
-        const isProd = env === 'prod' || env === 'production';
+        const isProd = env === 'production' || env === 'prod';
         return {
           type: 'postgres',
           url: config.get<string>('DATABASE_URL'),
-          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          entities: [__dirname + '/**/*.entity.js'],
           synchronize: !isProd,
           logging: !isProd,
           // Connection pool settings
@@ -113,18 +116,20 @@ import { CacheInvalidationInterceptor } from './core/interceptors/cache-invalida
       }),
     }),
 
-    // ─── BullBoard (queue monitoring UI at /bull-board) ────────────────────────
-    BullBoardModule.forRoot({
-      route: '/bull-board',
-      adapter: ExpressAdapter,
-    }),
-
     // ─── Feature modules ────────────────────────────────────────────────────────
     HealthModule,
     UsersModule,
     AuthModule,
     MailModule,
     QueuesModule,
+    ...(enableBullBoard
+      ? [
+          BullBoardModule.forRoot({
+            route: '/bull-board',
+            adapter: ExpressAdapter,
+          }),
+        ]
+      : []),
     OrdersModule,
     AdminModule,
   ],

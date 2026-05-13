@@ -1,6 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
+import * as crypto from 'crypto';
 import {
   hashPassword,
   comparePasswords,
@@ -10,11 +13,22 @@ import { User } from 'src/modules/users/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenService } from './refresh-token.service';
 import {
+  AccountLockedException,
   InvalidCredentialsException,
   SessionExpiredException,
   UserAlreadyExistsException,
   UserNotFoundException,
 } from './exceptions/auth.exception';
+import { ForbiddenException, BadRequestException } from '@nestjs/common';
+import { MailService } from 'src/core/mail/mail.service';
+
+const LOGIN_FAIL_PREFIX = 'login_fails:';
+const VERIFY_CODE_PREFIX = 'verify_code:';
+const RESET_CODE_PREFIX = 'reset_code:';
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCK_TTL_MS = 15 * 60 * 1000; // 15 min
+const VERIFY_CODE_TTL_MS = 30 * 60 * 1000; // 30 min
+const RESET_CODE_TTL_MS = 15 * 60 * 1000; // 15 min
 
 export interface TokenResponse {
   access_token: string;
@@ -35,15 +49,17 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly refreshTokenService: RefreshTokenService,
+    private readonly mailService: MailService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<TokenResponse> {
+  async register(registerDto: RegisterDto): Promise<{ message: string }> {
     try {
       const existingUser = await this.usersService.findOneByEmail(
         registerDto.email,
       );
       if (existingUser) {
-        throw new UserAlreadyExistsException(registerDto.email);
+        throw new UserAlreadyExistsException();
       }
 
       const hashedPassword = await hashPassword(registerDto.password);
@@ -53,24 +69,58 @@ export class AuthService {
         password: hashedPassword,
       } as User);
 
-      return this.generateTokens(user);
+      // Send verification email
+      const code = this.generateSecureCode();
+      await this.cacheManager.set(
+        `${VERIFY_CODE_PREFIX}${user.email}`,
+        code,
+        VERIFY_CODE_TTL_MS,
+      );
+      await this.mailService.sendVerificationEmail(user.email, user.name, code);
+
+      return { message: 'Registration successful. Please verify your email.' };
     } catch (error) {
       this.handleError(error);
     }
   }
 
+  async verifyEmail(email: string, code: string): Promise<{ message: string }> {
+    const stored = await this.cacheManager.get<string>(
+      `${VERIFY_CODE_PREFIX}${email}`,
+    );
+    if (!stored || stored !== code) {
+      throw new BadRequestException('Invalid or expired verification code.');
+    }
+    const user = await this.usersService.findOneByEmail(email);
+    if (!user) throw new UserNotFoundException();
+
+    await this.usersService.verifyEmail(user.id);
+    await this.cacheManager.del(`${VERIFY_CODE_PREFIX}${email}`);
+    return { message: 'Email verified successfully.' };
+  }
+
   async validateUser(email: string, password: string): Promise<User | null> {
     try {
+      const lockKey = `${LOGIN_FAIL_PREFIX}${email}`;
+      const attempts = (await this.cacheManager.get<number>(lockKey)) ?? 0;
+      if (attempts >= MAX_LOGIN_ATTEMPTS) {
+        throw new AccountLockedException();
+      }
+
       const user = await this.usersService.findOneByEmail(email);
       if (!user) {
+        await this.incrementLoginFails(lockKey);
         return null;
       }
 
       const isValidPassword = await comparePasswords(password, user.password);
       if (!isValidPassword) {
+        await this.incrementLoginFails(lockKey);
         return null;
       }
 
+      // Clear fail counter on success
+      await this.cacheManager.del(lockKey);
       return user;
     } catch (error) {
       this.logger.error(`Error validating user: ${email}`, error);
@@ -80,6 +130,11 @@ export class AuthService {
 
   async login(user: User): Promise<TokenResponse> {
     try {
+      if (!user.isVerified) {
+        throw new ForbiddenException(
+          'Please verify your email address before logging in.',
+        );
+      }
       await this.refreshTokenService.revokeAllUserTokens(user.id);
       user.sessionVersion += 1;
       await this.usersService.update(user.id, user);
@@ -87,6 +142,46 @@ export class AuthService {
     } catch (error) {
       this.handleError(error);
     }
+  }
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    // Always return same message to avoid user enumeration
+    const message = 'If that email exists, a reset code has been sent.';
+    const user = await this.usersService.findOneByEmail(email);
+    if (!user) return { message };
+
+    const code = this.generateSecureCode();
+    await this.cacheManager.set(
+      `${RESET_CODE_PREFIX}${email}`,
+      code,
+      RESET_CODE_TTL_MS,
+    );
+    await this.mailService.sendPasswordResetEmail(email, code, user.name);
+    return { message };
+  }
+
+  async resetPassword(
+    email: string,
+    code: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    const stored = await this.cacheManager.get<string>(
+      `${RESET_CODE_PREFIX}${email}`,
+    );
+    if (!stored || stored !== code) {
+      throw new BadRequestException('Invalid or expired reset code.');
+    }
+
+    const user = await this.usersService.findOneByEmail(email);
+    if (!user) throw new UserNotFoundException();
+
+    const hashed = await hashPassword(newPassword);
+    await this.usersService.updatePassword(user.id, hashed);
+    await this.cacheManager.del(`${RESET_CODE_PREFIX}${email}`);
+
+    // Invalidate all sessions
+    await this.refreshTokenService.revokeAllUserTokens(user.id);
+    return { message: 'Password reset successful.' };
   }
 
   async refreshToken(refreshToken: string): Promise<TokenResponse> {
@@ -139,7 +234,6 @@ export class AuthService {
   private async generateTokens(user: User): Promise<TokenResponse> {
     const payload = {
       sub: user.id,
-      email: user.email,
       role: user.role,
       sessionVersion: user.sessionVersion,
     };
@@ -159,7 +253,26 @@ export class AuthService {
     };
   }
 
+  private async incrementLoginFails(key: string): Promise<void> {
+    const current = (await this.cacheManager.get<number>(key)) ?? 0;
+    await this.cacheManager.set(key, current + 1, LOCK_TTL_MS);
+  }
+
+  /** Generates a cryptographically secure 6-digit numeric code */
+  private generateSecureCode(): string {
+    const bytes = crypto.randomBytes(4);
+    const num = bytes.readUInt32BE(0) % 1_000_000;
+    return num.toString().padStart(6, '0');
+  }
+
   private handleError(error: unknown): never {
+    if (
+      error instanceof UserAlreadyExistsException ||
+      error instanceof InvalidCredentialsException ||
+      error instanceof ForbiddenException
+    ) {
+      throw error;
+    }
     if (error instanceof Error) {
       this.logger.error(`Auth error: ${error.message}`);
     }

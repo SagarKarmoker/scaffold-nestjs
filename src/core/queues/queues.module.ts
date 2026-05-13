@@ -6,6 +6,19 @@ import { QUEUE_NAMES } from './constants/queue-names';
 import { EmailProcessor } from './processors/email.processor';
 import { EmailProducerService } from './services/email-producer.service';
 
+const enableBullBoard = process.env.ENABLE_BULL_BOARD === 'true' ||
+  process.env.ENVIRONMENT !== 'production';
+
+function getBullBoardFeature(): any[] {
+  if (!enableBullBoard) return [];
+  return [
+    BullBoardModule.forFeature(
+      { name: QUEUE_NAMES.EMAIL, adapter: BullMQAdapter },
+      { name: QUEUE_NAMES.ORDER_PROCESSING, adapter: BullMQAdapter },
+    ),
+  ];
+}
+
 @Module({
   imports: [
     BullModule.registerQueue(
@@ -28,10 +41,7 @@ import { EmailProducerService } from './services/email-producer.service';
         },
       },
     ),
-    BullBoardModule.forFeature(
-      { name: QUEUE_NAMES.EMAIL, adapter: BullMQAdapter },
-      { name: QUEUE_NAMES.ORDER_PROCESSING, adapter: BullMQAdapter },
-    ),
+    ...getBullBoardFeature(),
   ],
   providers: [EmailProcessor, EmailProducerService],
   exports: [EmailProducerService, BullModule],

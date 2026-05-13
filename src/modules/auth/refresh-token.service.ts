@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository, LessThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'node:crypto';
 import { RefreshToken } from './entities/refresh-token.entity';
@@ -61,7 +61,7 @@ export class RefreshTokenService {
 
   async cleanExpiredTokens(): Promise<void> {
     await this.refreshTokenRepository.delete({
-      expiresAt: IsNull(),
+      expiresAt: LessThan(new Date()),
     });
   }
 
