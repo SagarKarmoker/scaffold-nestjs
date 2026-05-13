@@ -35,7 +35,7 @@ async function bootstrap() {
   );
 
   // API Versioning
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', { exclude: ['/bull-board'] });
   app.enableVersioning({
     defaultVersion: '1',
     prefix: 'v',
